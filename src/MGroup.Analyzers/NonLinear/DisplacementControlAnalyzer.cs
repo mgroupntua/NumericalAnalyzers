@@ -1,139 +1,162 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using MGroup.Analyzers.Interfaces;
-using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Discretization.Interfaces;
-using MGroup.MSolve.Logging;
-using MGroup.Solvers;
-using MGroup.Solvers.LinearSystems;
-
 namespace MGroup.Analyzers.NonLinear
 {
-    /// <summary>
-    /// This only works if there are no nodal loads or any loading condition other than prescribed displacements.
-    /// </summary>
-    public class DisplacementControlAnalyzer : NonLinearAnalyzerBase
-    {
-        private DisplacementControlAnalyzer(IModel model, ISolver solver, INonLinearProvider provider,
-            IReadOnlyDictionary<int, INonLinearSubdomainUpdater> subdomainUpdaters,
-            int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance) :
-            base(model, solver, provider, subdomainUpdaters, numIncrements, maxIterationsPerIncrement,
-                numIterationsForMatrixRebuild, residualTolerance)
-        { }
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
 
-        public override void Solve()
-        {
-            InitializeLogs();
+	using MGroup.Analyzers.Interfaces;
+	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.Interfaces;
+	using MGroup.MSolve.Logging;
+	using MGroup.Solvers;
+	using MGroup.Solvers.LinearSystems;
 
-            DateTime start = DateTime.Now;
-            UpdateInternalVectors();
-            for (int increment = 0; increment < numIncrements; increment++)
-            {
-                double errorNorm = 0;
-                ClearIncrementalSolutionVector();
-                UpdateRhs(increment);
-                ScaleSubdomainConstraints(increment);
+	/// <summary>
+	/// This class solves the nonlinear system of equations using the displacement control method
+	/// </summary>
+	public class DisplacementControlAnalyzer : NonLinearAnalyzerBase
+	{
+		/// <summary>
+		/// This class solves the linearized geometrically nonlinear system of equations according to displacement control incremental-iterative method.
+		/// This only works if there are no nodal loads or any loading condition other than prescribed displacements.
+		/// </summary>
+		/// <param name="model">Instance of the model that will be solved</param>
+		/// <param name="solver">Instance of the solver that will solve the linear system of equations</param>
+		/// <param name="provider">Instance of the problem type to be solved</param>
+		/// <param name="subdomainUpdaters">Instance that updates constraints, right-hand-side vector, updates and resets state</param>
+		/// <param name="numIncrements">Number of total load increments</param>
+		/// <param name="maxIterationsPerIncrement">Number of maximum iterations within a load increment</param>
+		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
+		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
+		private DisplacementControlAnalyzer(IModel model, ISolver solver, INonLinearProvider provider,
+			IReadOnlyDictionary<int, INonLinearSubdomainUpdater> subdomainUpdaters,
+			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
+			: base(model, solver, provider, subdomainUpdaters, numIncrements, maxIterationsPerIncrement,
+				numIterationsForMatrixRebuild, residualTolerance)
+		{ }
 
-                double firstError = 0;
-                int iteration = 0;
-                for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
-                {
-                    AddEquivalentNodalLoadsToRHS(increment, iteration);
-                    solver.Solve();
+		/// <summary>
+		/// Solves the nonlinear equations and calculates the displacements vector
+		/// </summary>
+		public override void Solve()
+		{
+			InitializeLogs();
 
-                    Dictionary<int, IVector> internalRhsVectors = CalculateInternalRhs(increment, iteration);
-                    errorNorm = UpdateResidualForcesAndNorm(increment, internalRhsVectors); // This also sets the rhs vectors in linear systems.
-                    //Console.WriteLine($"Increment {increment}, iteration {iteration}: norm2(error) = {errorNorm}");
+			DateTime start = DateTime.Now;
+			UpdateInternalVectors();
+			for (int increment = 0; increment < numIncrements; increment++)
+			{
+				double errorNorm = 0;
+				ClearIncrementalSolutionVector();
+				UpdateRhs(increment);
+				ScaleSubdomainConstraints(increment);
 
-                    if (iteration == 0) firstError = errorNorm;
+				double firstError = 0;
+				int iteration = 0;
+				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
+				{
+					AddEquivalentNodalLoadsToRHS(increment, iteration);
+					solver.Solve();
 
-                    if (TotalDisplacementsPerIterationLog != null) TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
+					Dictionary<int, IVector> internalRhsVectors = CalculateInternalRhs(increment, iteration);
+					errorNorm = UpdateResidualForcesAndNorm(increment, internalRhsVectors);
 
-                    if (errorNorm < residualTolerance)
-                    {
-                        foreach (var subdomainLogPair in IncrementalLogs)
-                        {
-                            int subdomainID = subdomainLogPair.Key;
-                            TotalLoadsDisplacementsPerIncrementLog log = subdomainLogPair.Value;
-                            log.LogTotalDataForIncrement(increment, iteration, errorNorm,
-                                uPlusdu[subdomainID], internalRhsVectors[subdomainID]);
-                        }
-                        break;
-                    }
-                    
-                    SplitResidualForcesToSubdomains();
-                    if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
-                    {
-                        provider.Reset();
-                        BuildMatrices();
-                    }
-                }
-                Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
-                SaveMaterialStateAndUpdateSolution();
-            }
+					if (iteration == 0)
+					{
+						firstError = errorNorm;
+					}
 
-            // TODO: Logging should be done at each iteration. And it should be done using pull observers
-            DateTime end = DateTime.Now;
-            StoreLogResults(start, end);
-        }
+					if (TotalDisplacementsPerIterationLog != null)
+					{
+						TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
+					}
 
-        protected override void InitializeInternalVectors()
-        {
-            base.InitializeInternalVectors();
-            foreach (ILinearSystem linearSystem in linearSystems.Values)
-            {
-                subdomainUpdaters[linearSystem.Subdomain.ID].ScaleConstraints(1 / (double)numIncrements);
-            }
-        }
+					if (errorNorm < residualTolerance)
+					{
+						foreach (var subdomainLogPair in IncrementalLogs)
+						{
+							int subdomainID = subdomainLogPair.Key;
+							TotalLoadsDisplacementsPerIncrementLog log = subdomainLogPair.Value;
+							log.LogTotalDataForIncrement(increment, iteration, errorNorm,
+								uPlusdu[subdomainID], internalRhsVectors[subdomainID]);
+						}
+						break;
+					}
 
-        private void AddEquivalentNodalLoadsToRHS(int currentIncrement, int iteration)
-        {
-            if (iteration != 0)
-                return;
+					SplitResidualForcesToSubdomains();
+					if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
+					{
+						provider.Reset();
+						BuildMatrices();
+					}
+				}
+				Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
+				SaveMaterialStateAndUpdateSolution();
+			}
 
-            foreach (ILinearSystem linearSystem in linearSystems.Values)
-            {
-                int id = linearSystem.Subdomain.ID;
+			DateTime end = DateTime.Now;
+			StoreLogResults(start, end);
+		}
 
-                double scalingFactor = 1; //((double)currentIncrement + 2) / (currentIncrement + 1); //2; //
-                IVector equivalentNodalLoads = provider.DirichletLoadsAssembler.GetEquivalentNodalLoads(linearSystem.Subdomain, 
-                    u[id], scalingFactor);
-                linearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
+		protected override void InitializeInternalVectors()
+		{
+			base.InitializeInternalVectors();
+			foreach (ILinearSystem linearSystem in linearSystems.Values)
+			{
+				subdomainUpdaters[linearSystem.Subdomain.ID].ScaleConstraints(1 / (double)numIncrements);
+			}
+		}
 
-                model.GlobalDofOrdering.AddVectorSubdomainToGlobal(linearSystem.Subdomain, linearSystem.RhsVector, globalRhs);
-            }
-        }
+		private void AddEquivalentNodalLoadsToRHS(int iteration, int iteration1)
+		{
+			if (iteration != 0)
+			{
+				return;
+			}
 
-        // This does nothing at all, as it is written right now
-        private void ScaleSubdomainConstraints(int currentIncrement)
-        {
-            if (currentIncrement == 0)
-                return;
+			foreach (ILinearSystem linearSystem in linearSystems.Values)
+			{
+				int id = linearSystem.Subdomain.ID;
 
-            foreach (ILinearSystem linearSystem in linearSystems.Values)
-            {
-                //int idx = FindSubdomainIdx(linearSystems, linearSystem);
-                double scalingFactor = 1; // ((double)currentIncrement + 2) / (currentIncrement + 1);
-                subdomainUpdaters[linearSystem.Subdomain.ID].ScaleConstraints(scalingFactor);
-            }
-        }
+				double scalingFactor = 1;
+				IVector equivalentNodalLoads = provider.DirichletLoadsAssembler.GetEquivalentNodalLoads(
+					linearSystem.Subdomain,
+					u[id], scalingFactor);
+				linearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
 
-        public class Builder: NonLinearAnalyzerBuilderBase
-        {
-            public Builder(IModel model, ISolver solver, INonLinearProvider provider, int numIncrements):
-                base(model, solver, provider, numIncrements)
-            {
-                MaxIterationsPerIncrement = 1000;
-                NumIterationsForMatrixRebuild = 1;
-                ResidualTolerance = 1E-3;
-            }
+				model.GlobalDofOrdering.AddVectorSubdomainToGlobal(linearSystem.Subdomain, linearSystem.RhsVector, globalRhs);
+			}
+		}
 
-            public DisplacementControlAnalyzer Build()
-            {
-                return new DisplacementControlAnalyzer(model, solver, provider, SubdomainUpdaters,
-                    numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
-            }
-        }
-    }
+		private void ScaleSubdomainConstraints(int currentIncrement)
+		{
+			if (currentIncrement == 0)
+			{
+				return;
+			}
+
+			foreach (ILinearSystem linearSystem in linearSystems.Values)
+			{
+				double scalingFactor = 1;
+				subdomainUpdaters[linearSystem.Subdomain.ID].ScaleConstraints(scalingFactor);
+			}
+		}
+
+		public class Builder : NonLinearAnalyzerBuilderBase
+		{
+			public Builder(IModel model, ISolver solver, INonLinearProvider provider, int numIncrements)
+				: base(model, solver, provider, numIncrements)
+			{
+				MaxIterationsPerIncrement = 1000;
+				NumIterationsForMatrixRebuild = 1;
+				ResidualTolerance = 1E-3;
+			}
+
+			public DisplacementControlAnalyzer Build()
+			{
+				return new DisplacementControlAnalyzer(model, solver, provider, SubdomainUpdaters,
+					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
+			}
+		}
+	}
 }

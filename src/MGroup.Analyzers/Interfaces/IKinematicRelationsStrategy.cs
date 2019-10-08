@@ -1,9 +1,9 @@
-﻿using MGroup.MSolve.Discretization.Interfaces;
-
-namespace MGroup.Analyzers.Interfaces
+﻿namespace MGroup.Analyzers.Interfaces
 {
-    public interface IKinematicRelationsStrategy
-    {
-        double[,] GetNodalKinematicRelationsMatrix(INode boundaryNode);
-    }
+	using MGroup.MSolve.Discretization.Interfaces;
+
+	public interface IKinematicRelationsStrategy
+	{
+		double[,] GetNodalKinematicRelationsMatrix(INode boundaryNode);
+	}
 }

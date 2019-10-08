@@ -1,74 +1,87 @@
-﻿using System;
-using System.Collections.Generic;
-using MGroup.Analyzers.Interfaces;
-using MGroup.MSolve.Discretization.Interfaces;
-using MGroup.Solvers;
-
 namespace MGroup.Analyzers.NonLinear
 {
-    public abstract class NonLinearAnalyzerBuilderBase
-    {
-        protected int maxIterationsPerIncrement = 1000;
-        protected readonly IModel model;
-        protected readonly int numIncrements;
-        protected int numIterationsForMatrixRebuild = 1;
-        protected readonly INonLinearProvider provider;
-        protected double residualTolerance = 1e-8;
-        protected readonly ISolver solver;
+	using System;
+	using System.Collections.Generic;
 
-        protected NonLinearAnalyzerBuilderBase(IModel model, ISolver solver, INonLinearProvider provider, 
-            int numIncrements)
-        {
-            //TODO: this should belong to all (child) analyzer builders
-            this.model = model;
-            this.solver = solver;
-            this.provider = provider;
-            this.numIncrements = numIncrements;
-            SubdomainUpdaters = CreateDefaultSubdomainUpdaters();
-        }
+	using MGroup.Analyzers.Interfaces;
+	using MGroup.MSolve.Discretization.Interfaces;
+	using MGroup.Solvers;
 
-        public int MaxIterationsPerIncrement
-        {
-            get => maxIterationsPerIncrement;
-            set
-            {
-                if (value < 1) throw new ArgumentException("Max iterations per increment must be >= 1");
-                maxIterationsPerIncrement = value;
-            }
-        }
+	public abstract class NonLinearAnalyzerBuilderBase
+	{
+		protected int maxIterationsPerIncrement = 1000;
+		protected readonly IModel model;
+		protected readonly int numIncrements;
+		protected int numIterationsForMatrixRebuild = 1;
+		protected readonly INonLinearProvider provider;
+		protected double residualTolerance = 1e-8;
+		protected readonly ISolver solver;
 
-        public int NumIterationsForMatrixRebuild
-        {
-            get => numIterationsForMatrixRebuild;
-            set
-            {
-                if (value < 1) throw new ArgumentException("Iterations number for matrix rebuild must be >= 1");
-                numIterationsForMatrixRebuild = value;
-            }
-        }
+		protected NonLinearAnalyzerBuilderBase(IModel model, ISolver solver, INonLinearProvider provider,
+			int numIncrements)
+		{
+			//TODO: this should belong to all (child) analyzer builders
+			this.model = model;
+			this.solver = solver;
+			this.provider = provider;
+			this.numIncrements = numIncrements;
+			SubdomainUpdaters = CreateDefaultSubdomainUpdaters();
+		}
 
-        public double ResidualTolerance
-        {
-            get => residualTolerance;
-            set
-            {
-                if (value <= 0.0) throw new ArgumentException("Residual tolerance must be positive");
-                residualTolerance = value;
-            }
-        }
+		public int MaxIterationsPerIncrement
+		{
+			get => maxIterationsPerIncrement;
+			set
+			{
+				if (value < 1)
+				{
+					throw new ArgumentException("Max iterations per increment must be >= 1");
+				}
 
-        public IReadOnlyDictionary<int, INonLinearSubdomainUpdater> SubdomainUpdaters { get; set; }
+				maxIterationsPerIncrement = value;
+			}
+		}
 
-        private IReadOnlyDictionary<int, INonLinearSubdomainUpdater> CreateDefaultSubdomainUpdaters()
-        {
-            int numSubdomains = model.Subdomains.Count;
-            var subdomainUpdaters = new Dictionary<int, INonLinearSubdomainUpdater>(numSubdomains);
-            for (int i = 0; i < numSubdomains; ++i)
-            {
-                subdomainUpdaters[model.Subdomains[i].ID] = new NonLinearSubdomainUpdater(model.Subdomains[i]);
-            }
-            return subdomainUpdaters;
+		public int NumIterationsForMatrixRebuild
+		{
+			get => numIterationsForMatrixRebuild;
+			set
+			{
+				if (value < 1)
+				{
+					throw new ArgumentException("Iterations number for matrix rebuild must be >= 1");
+				}
 
-        }
-    }
+				numIterationsForMatrixRebuild = value;
+			}
+		}
+
+		public double ResidualTolerance
+		{
+			get => residualTolerance;
+			set
+			{
+				if (value <= 0.0)
+				{
+					throw new ArgumentException("Residual tolerance must be positive");
+				}
+
+				residualTolerance = value;
+			}
+		}
+
+		public IReadOnlyDictionary<int, INonLinearSubdomainUpdater> SubdomainUpdaters { get; set; }
+
+		private IReadOnlyDictionary<int, INonLinearSubdomainUpdater> CreateDefaultSubdomainUpdaters()
+		{
+			int numSubdomains = model.Subdomains.Count;
+			var subdomainUpdaters = new Dictionary<int, INonLinearSubdomainUpdater>(numSubdomains);
+			for (int i = 0; i < numSubdomains; ++i)
+			{
+				subdomainUpdaters[model.Subdomains[i].ID] = new NonLinearSubdomainUpdater(model.Subdomains[i]);
+			}
+			return subdomainUpdaters;
+
+		}
+	}
 }

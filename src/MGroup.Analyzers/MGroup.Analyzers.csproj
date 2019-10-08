@@ -5,10 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MGroup.LinearAlgebra" Version="1.0.88" />
-    <PackageReference Include="MGroup.MSolve.Discretization" Version="1.0.114" />
-    <PackageReference Include="MGroup.MSolve.Logging" Version="1.0.114" />
-    <PackageReference Include="MGroup.Solvers" Version="1.0.96" />
+    <PackageReference Include="MGroup.LinearAlgebra" Version="1.0.201" />
+    <PackageReference Include="MGroup.MSolve.Discretization" Version="1.0.212" />
+    <PackageReference Include="MGroup.MSolve.Logging" Version="1.0.212" />
+    <PackageReference Include="MGroup.Solvers" Version="1.0.205" />
   </ItemGroup>
 
 </Project>

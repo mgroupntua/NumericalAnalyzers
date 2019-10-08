@@ -1,94 +1,107 @@
-﻿using System;
-using System.Collections.Generic;
-using MGroup.Analyzers.Interfaces;
-using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Discretization.FreedomDegrees;
-using MGroup.MSolve.Discretization.Interfaces;
-using MGroup.MSolve.Logging.Interfaces;
-using MGroup.Solvers;
-using MGroup.Solvers.LinearSystems;
-
 namespace MGroup.Analyzers
 {
-    public class LinearAnalyzer : IChildAnalyzer
-    {
-        private readonly IReadOnlyDictionary<int, ILinearSystem> linearSystems;
-        private readonly IModel model;
-        private readonly IAnalyzerProvider provider;
-        private readonly ISolver solver;
+	using System;
+	using System.Collections.Generic;
 
-        public LinearAnalyzer(IModel model, ISolver solver, IAnalyzerProvider provider)
-        {
-            this.model = model;
-            this.solver = solver;
-            this.linearSystems = solver.LinearSystems;
-            this.provider = provider;
-        }
+	using MGroup.Analyzers.Interfaces;
+	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.Discretization.FreedomDegrees;
+	using MGroup.MSolve.Discretization.Interfaces;
+	using MGroup.MSolve.Logging.Interfaces;
+	using MGroup.Solvers;
+	using MGroup.Solvers.LinearSystems;
 
-        public Dictionary<int, ILogFactory> LogFactories { get; } = new Dictionary<int, ILogFactory>();
-        public Dictionary<int, IAnalyzerLog[]> Logs { get; } = new Dictionary<int, IAnalyzerLog[]>();
+	/// <summary>
+	/// This class solves the linear system.
+	/// </summary>
+	public class LinearAnalyzer : IChildAnalyzer
+	{
+		private readonly IReadOnlyDictionary<int, ILinearSystem> linearSystems;
+		private readonly IModel model;
+		private readonly IAnalyzerProvider provider;
+		private readonly ISolver solver;
 
-        public IParentAnalyzer ParentAnalyzer { get; set; }
+		/// <summary>
+		/// This class defines the linear anaylzer.
+		/// </summary>
+		/// <param name="model">Instance of the model that will be solved</param>
+		/// <param name="solver">Instance of the solver that will solve the linear system of equations</param>
+		/// <param name="provider">Instance of the problem type to be solved</param> 
+		public LinearAnalyzer(IModel model, ISolver solver, IAnalyzerProvider provider)
+		{
+			this.model = model;
+			this.solver = solver;
+			this.linearSystems = solver.LinearSystems;
+			this.provider = provider;
+		}
 
-        public void BuildMatrices()
-        {
-            if (ParentAnalyzer == null) throw new InvalidOperationException("This linear analyzer has no parent.");
+		public Dictionary<int, ILogFactory> LogFactories { get; } = new Dictionary<int, ILogFactory>();
 
-            ParentAnalyzer.BuildMatrices();
-            //solver.Initialize();
-        }
+		public Dictionary<int, IAnalyzerLog[]> Logs { get; } = new Dictionary<int, IAnalyzerLog[]>();
 
-        public void Initialize(bool isFirstAnalysis)
-        {
-            InitializeLogs();
-            //solver.Initialize(); //TODO: Using this needs refactoring
-        }
+		public IParentAnalyzer ParentAnalyzer { get; set; }
 
-        public void Solve()
-        {
-            DateTime start = DateTime.Now;
-            AddEquivalentNodalLoadsToRHS(); //TODO: The initial rhs (from other loads) should also be built by the analyzer instead of the model.
-            solver.Solve();
-            DateTime end = DateTime.Now;
-            StoreLogResults(start, end);
-        }
+		public void BuildMatrices()
+		{
+			if (ParentAnalyzer == null)
+			{
+				throw new InvalidOperationException("This linear analyzer has no parent.");
+			}
 
-        private void AddEquivalentNodalLoadsToRHS()
-        {
-            foreach (ILinearSystem linearSystem in linearSystems.Values)
-            {
-                try
-                {
-                    // Make sure there is at least one non zero prescribed displacement.
-                    (INode node, IDofType dof, double displacement) = linearSystem.Subdomain.Constraints.Find(du => du != 0.0);
+			ParentAnalyzer.BuildMatrices();
+		}
 
-                    //TODO: the following 2 lines are meaningless outside diplacement control (and even then, they are not so clear).
-                    double scalingFactor = 1;
-                    IVector initialFreeSolution = linearSystem.CreateZeroVector();
+		public void Initialize(bool isFirstAnalysis)
+		{
+			InitializeLogs();
+		}
 
-                    IVector equivalentNodalLoads = provider.DirichletLoadsAssembler.GetEquivalentNodalLoads(
-                        linearSystem.Subdomain, initialFreeSolution, scalingFactor);
-                    linearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
-                }
-                catch (KeyNotFoundException)
-                {
-                    // There aren't any non zero prescribed displacements, therefore we do not have to calculate the equivalent 
-                    // nodal loads, which is an expensive operation (all elements are accessed, their stiffness is built, etc..)
-                }
-            }
-        }
+		public void Solve()
+		{
+			DateTime start = DateTime.Now;
+			AddEquivalentNodalLoadsToRHS();
+			solver.Solve();
+			DateTime end = DateTime.Now;
+			StoreLogResults(start, end);
+		}
 
-        private void InitializeLogs()
-        {
-            Logs.Clear();
-            foreach (int id in LogFactories.Keys) Logs.Add(id, LogFactories[id].CreateLogs());
-        }
+		private void AddEquivalentNodalLoadsToRHS()
+		{
+			foreach (ILinearSystem linearSystem in linearSystems.Values)
+			{
+				try
+				{
+					(INode node, IDofType dof, double displacement) = linearSystem.Subdomain.Constraints.Find(du => du != 0.0);
+					double scalingFactor = 1;
+					IVector initialFreeSolution = linearSystem.CreateZeroVector();
+					IVector equivalentNodalLoads = provider.DirichletLoadsAssembler.GetEquivalentNodalLoads(
+						linearSystem.Subdomain, initialFreeSolution, scalingFactor);
+					linearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
+				}
+				catch (KeyNotFoundException)
+				{
+				}
+			}
+		}
 
-        private void StoreLogResults(DateTime start, DateTime end)
-        {
-            foreach (int id in Logs.Keys)
-                foreach (var l in Logs[id])
-                    l.StoreResults(start, end, linearSystems[id].Solution);
-        }
-    }
+		private void InitializeLogs()
+		{
+			Logs.Clear();
+			foreach (int id in LogFactories.Keys)
+			{
+				Logs.Add(id, LogFactories[id].CreateLogs());
+			}
+		}
+
+		private void StoreLogResults(DateTime start, DateTime end)
+		{
+			foreach (int id in Logs.Keys)
+			{
+				foreach (var l in Logs[id])
+				{
+					l.StoreResults(start, end, linearSystems[id].Solution);
+				}
+			}
+		}
+	}
 }
