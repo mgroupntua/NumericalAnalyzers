@@ -2,7 +2,7 @@
 
 ## Example 1: Euler Beam2D Linear Test
 
-The followinf example demostrates the linear, static beahavior of a cantelever, 2-dimensional beam structure under bending.
+The following example demostrates the linear, static beahavior of a cantelever, 2-dimensional beam structure under bending.
 The examples splits in three parts. The first part refers to the model creation, the second to the loading and boundary conditions
 and the third and final defines the analysis type. 
 
@@ -60,7 +60,7 @@ for (int i = 0; i < nodes.Count; ++i)
 ```
 
 The boundary condtions are applied on each node using its key and on the degree of freedom 
-(translational along x,y,z-axes or rotational about x,y,z-axes), as:
+that is constrained (translational along x,y,z-axes or rotational about x,y,z-axes), as:
 
 ```csharp
 // Define Boundary Conditions: Constrain bottom nodes of the model.
