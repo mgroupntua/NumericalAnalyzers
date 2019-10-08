@@ -59,8 +59,8 @@ for (int i = 0; i < nodes.Count; ++i)
 }
 ```
 
-The boundary condtions are applied on the key of each node and on the structural degree of freedom 
-(translational along x,y,z-axes or rotational about x,y,z-axes):
+The boundary condtions are applied on each node using its key and on the degree of freedom 
+(translational along x,y,z-axes or rotational about x,y,z-axes), as:
 
 ```csharp
 // Define Boundary Conditions: Constrain bottom nodes of the model.
