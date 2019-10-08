@@ -6,7 +6,6 @@ The plane frame structure consists of three (3) elements and four (4) nodes.
 
 Define the mechanical properties, nodal loads, number of nodes, number of elements and 
 monitor node:
-
 ```csharp
 double youngModulus = 21000.0;
 double poissonRatio = 0.3;
@@ -23,7 +22,6 @@ int monitorNode = 2;
 ```
 
 Generate nodal geometry:
-
 ```csharp
 // Node creation
 IList<Node> nodes = new List<Node>();
@@ -39,7 +37,6 @@ nodes.Add(node4);
 ```
 
 Define the model and the subdomain:
-
 ```csharp
 // Model creation
 Model model = new Model();
@@ -55,7 +52,6 @@ for (int i = 0; i < nodes.Count; ++i)
 ```
 
 Constrain the first and the last nodes:
-
 ```csharp
 // Constrain first and last nodes of the model
 model.NodesDictionary[1].Constraints.Add(new Constraint { DOF = StructuralDof.TranslationX });
@@ -73,7 +69,6 @@ model.NodesDictionary[4].Constraints.Add(new Constraint { DOF = StructuralDof.Ro
 ```
 
 Generate the elements of the structure:
-
 ```csharp
 // Generate elements of the structure
 int iNode = 1;
@@ -116,7 +111,6 @@ model.Loads.Add(new Load() { Amount = nodalLoad, Node = model.NodesDictionary[mo
 
 Define Skyline solver, Structural provider, Load Control (i.e Newton-Raphson) chlid analyzer and
 Satic parent analyzer:
-
 ```csharp
 // Solver
 var solverBuilder = new SkylineSolver.Builder();
