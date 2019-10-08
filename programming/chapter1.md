@@ -1,5 +1,3 @@
-{% include mathjax.html %}
-
 ## Example 1: Euler Beam2D Linear Test
 
 The following example demostrates the linear, static beahavior of a cantelever, 2-dimensional beam structure under bending.
