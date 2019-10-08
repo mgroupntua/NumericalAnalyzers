@@ -1,1 +1,1 @@
-## 5. Beam2D Newmark Dynamic Analysis Test
+## Example 5: Thermal Dynamic Analysis Test
