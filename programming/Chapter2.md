@@ -1,4 +1,4 @@
-## Example 2: Beam2D Corotational Nonlinear Test
+## Example 2: Beam2D Corotational Nonlinear Example
 
 The following example demonstrates the geometrically nonlinear behavior of a  cantilever 
 Beam2D struture using the corotational formulation. To this purpose, two tests are shown, 
