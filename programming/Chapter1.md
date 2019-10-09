@@ -1,4 +1,4 @@
-## Example 1: Euler Beam2D Linear Test
+## Example 1: Euler Beam2D Linear Example
 
 The following example demonstrates the linear, static behavior of a cantilever, 2-dimensional beam structure under bending.
 The example splits in three parts. The first part refers to the model creation, the second to the loading and boundary conditions
