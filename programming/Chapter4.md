@@ -1,6 +1,6 @@
 ## Example 4: Newmark Dynamic Analysis Tests
 
-The present example demonstrates the behavior of the Newmark analyzer. To this purpose
+The present example demonstrates the behavior of the Newmark dynamic analyzer. To this purpose
 Example 9.4 from [1] is solved. 
 
 The Mocking technique will be used, since no elements are used in this example. This method 
@@ -36,7 +36,7 @@ And pass these properties to the element:
 e.ElementType = m.Object;
 ```
 
-Define Nodes and Elements Disctionary to be inserted to the model and the subdomain:
+Define Nodes and Elements Disctionaries to be inserted to the model and the subdomain:
 ```csharp
 model.NodesDictionary.Add(0, n);
 model.ElementsDictionary.Add(0, e);
@@ -65,7 +65,7 @@ m.Setup(x => x.CalculateAccelerationForces(It.IsAny<Element>(), It.IsAny<IList<M
 );
 ```
 
-Define Skyline solver, Structural provider , Linear child analyzer and Newmark Dynamic
+Define Skyline solver, Structural provider, Linear child analyzer and Newmark Dynamic
 parent anayzer:
 ```csharp
 // Solver
@@ -92,7 +92,6 @@ parentAnalyzer.Initialize();
 parentAnalyzer.Solve();
 ```
 
-
 Check output, according to Example 9.4 in [1]:
 ```csharp
 // Check output
@@ -100,7 +99,6 @@ Check output, according to Example 9.4 in [1]:
 			Assert.Equal(2.2840249264795207, log.DOFValues[0], 8);
 			Assert.Equal(2.4351921891904156, log.DOFValues[1], 8);
 ```
-
 
 ## References
 [1] Finite Element Procedures, K-J. Bathe, Prentice Hall, 2nd edition, 2014.
