@@ -152,16 +152,5 @@ double solutionNorm = solver.LinearSystems[1].Solution.Norm2();
 double rhsNorm = solver.LinearSystems[1].RhsVector.Norm2();
 ```
 
-While the final check of the test is to compare the y-axis dispacement of the free node of the structure with 
-the exact solution:
-
-```csharp
-// Check solution.
-Assert.Equal(31.388982074929341, solver.LinearSystems[1].Solution[4], 12);
-```
-
-Since this critetion is satisfied, the test is valid and this means that the solution we get is equal or close enough to the 
-right solution.
-
 
 
