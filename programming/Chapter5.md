@@ -3,7 +3,7 @@
 The present example demonstrates the solution of a dynamic thermal flux problem.
 
 This example consists of three parts. The first one has to do with the definition of the model,
-the second one with the solution od the model and the third one compares the generated results
+the second one with the solution of the model and the third one compares the generated results
 to the expected ones:
 
 ```csharp
@@ -52,7 +52,7 @@ for (int i = 0; i < numNodes; ++i)
 }
 ```
 
-The elements are defined according to the connectivity matrix and the are added to the model 
+The elements are defined according to the connectivity matrix and then are added to the model 
 and the subdomain defined earlier:
 ```csharp
 // Elements
