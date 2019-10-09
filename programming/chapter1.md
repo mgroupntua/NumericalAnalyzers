@@ -1,7 +1,7 @@
 ## Example 1: Euler Beam2D Linear Test
 
-The following example demostrates the linear, static beahavior of a cantelever, 2-dimensional beam structure under bending.
-The examples splits in three parts. The first part refers to the model creation, the second to the loading and boundary conditions
+The following example demonstrates the linear, static behavior of a cantilever, 2-dimensional beam structure under bending.
+The example splits in three parts. The first part refers to the model creation, the second to the loading and boundary conditions
 and the third and final defines the analysis type. 
 
 At first we define the mechanical properties of the beam cross-section and the material of the structure,
@@ -24,7 +24,7 @@ var material = new ElasticMaterial()
 ```
 
 The geometry of the structure consists of two (2) elements along the x-axis, with a total of three (3) nodes and
-six (6) degrees of freedom (DOFs). The geometry of the nodes is give by:
+six (6) degrees of freedom (DOFs). The geometry of the nodes is given by:
 
 ```csharp
 // Define geometry: Node creation. 
@@ -37,7 +37,7 @@ nodes.Add(node2);
 nodes.Add(node3);
 ```
 
-A model and a sub-domain are then generated as:
+A model and a subdomain are then generated as:
 
 ```csharp
 // Model creation.
@@ -57,7 +57,7 @@ for (int i = 0; i < nodes.Count; ++i)
 }
 ```
 
-The boundary condtions are applied on each node using its key and on the degree of freedom 
+The boundary condtions are applied at each node using its key and on the degree of freedom 
 that is constrained (translational along x,y,z-axes or rotational about x,y,z-axes), as:
 
 ```csharp
@@ -70,9 +70,10 @@ model.NodesDictionary[1].Constraints.Add(new Constraint { DOF = StructuralDof.Ro
 model.NodesDictionary[1].Constraints.Add(new Constraint { DOF = StructuralDof.RotationZ });
 ```
 
-In order to define a beam element, a beam-section has to be defined first and contains the mechanical properties.
-Then each element has to be defined by two (2) nodes, since the EulerBeam2D is a two-noded element. Finally, the elements
-are added in an elements dictionary and passed into the model and the subdomain that we wish.
+In order to define a beam element, a beam-section has to be firstly defined and 
+contains the mechanical properties. Then each element has to be defined by two (2) 
+nodes, since the EulerBeam2D is a two-noded element. Finally, the elements
+are added in an elements dictionary and passed into the model and the subdomain.
 
 ```csharp
 // Generate elements of the structure.
@@ -108,16 +109,18 @@ for (int iElem = 0; iElem < nElems; iElem++)
 }
 ```
 
-The loading conditions are defined by the keay of the node and the direction of the load, as:
+The loading conditions are defined by the key of the node and the direction of the load,
+as:
 
 ```csharp
 // Add nodal load values at the top nodes of the model.
 model.Loads.Add(new Load() { Amount = nodalLoad, Node = model.NodesDictionary[monitorNode], DOF = StructuralDof.TranslationY });
 ```
 
-In final part of the examples we have to define the problem type to be solved and the type of the solver that we 
-want to use. In this case we want to use a Skyline solver, while our problem type is structural and the analyzers 
-must combine a linear and a static one, which can be done by the definition of child and a parent analyzer, as can be seen
+In the final part of the example, the problem type and the type of the solver have to be
+defined. In this case we want to use a Skyline solver, while our problem type is 
+structural and the analyzers must combine a linear and a static one, 
+which can be done by the definition of a child and a parent analyzer, as can be seen
 in the following code lines:
 
 ```csharp
@@ -150,7 +153,7 @@ double rhsNorm = solver.LinearSystems[1].RhsVector.Norm2();
 ```
 
 While the final check of the test is to compare the y-axis dispacement of the free node of the structure with 
-the real solution:
+the exact solution:
 
 ```csharp
 // Check solution.
@@ -158,7 +161,7 @@ Assert.Equal(31.388982074929341, solver.LinearSystems[1].Solution[4], 12);
 ```
 
 Since this critetion is satisfied, the test is valid and this means that the solution we get is equal or close enough to the 
-rright solution.
+right solution.
 
 
 
