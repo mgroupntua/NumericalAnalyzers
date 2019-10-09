@@ -1,6 +1,6 @@
 ## Example 2: Beam2D Corotational Nonlinear Test
 
-The following example demonstrates the gemetrically nonlinear behavior of a  cantilever 
+The following example demonstrates the geometrically nonlinear behavior of a  cantilever 
 Beam2D struture using the corotational formulation. To this purpose, two tests are shown, 
 one using the Newton-Raphson analyzer and a second one using the Displacement Control analyzer.
 
@@ -55,7 +55,7 @@ for (int i = 0; i < nodes.Count; ++i)
 }
 ```
 
-Constrain the node with key=1, as:
+Constrain the node with key equal to 1, as:
 
 ```csharp
 // Constrain bottom nodes of the model
@@ -64,7 +64,7 @@ model.NodesDictionary[1].Constraints.Add(new Constraint() { DOF = StructuralDof.
 model.NodesDictionary[1].Constraints.Add(new Constraint() { DOF = StructuralDof.RotationZ, Amount = 0.0 });
 ```
 
-Define the corotation nonlinear beam2D elements:
+Define the geometrically nonlinear corotational beam2D elements:
 
 ```csharp
 // Generate elements of the structure
@@ -162,7 +162,7 @@ var childAnalyzerBuilder = new DisplacementControlAnalyzer.Builder(model, solver
 var childAnalyzer = childAnalyzerBuilder.Build();
 ```
 
-and replaces the NewronRaphsonAnalyzer of the first test.
+This replaces the Newron-Raphson analyzer (LoadControlAnalyzer) of the first test.
 
 
 
