@@ -1,4 +1,4 @@
-## Example 4: Newmark Dynamic Analysis Tests
+## Example 4: Newmark Dynamic Analysis Example
 
 The present example demonstrates the behavior of the Newmark dynamic analyzer. To this purpose
 Example 9.4 from [1] is solved. 
@@ -90,14 +90,6 @@ childAnalyzer.LogFactories[subdomainID] = new LinearAnalyzerLogFactory(new int[]
 // Run the analysis
 parentAnalyzer.Initialize();
 parentAnalyzer.Solve();
-```
-
-Check output, according to Example 9.4 in [1]:
-```csharp
-// Check output
-			DOFSLog log = (DOFSLog)childAnalyzer.Logs[subdomainID][0];
-			Assert.Equal(2.2840249264795207, log.DOFValues[0], 8);
-			Assert.Equal(2.4351921891904156, log.DOFValues[1], 8);
 ```
 
 ## References
