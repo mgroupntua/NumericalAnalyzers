@@ -1,4 +1,4 @@
-## Example 5: Thermal Dynamic Analysis Test
+## Example 5: Thermal Dynamic Analysis Example
 
 The present example demonstrates the solution of a dynamic thermal flux problem.
 
