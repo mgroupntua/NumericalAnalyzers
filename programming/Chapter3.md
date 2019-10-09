@@ -1,7 +1,7 @@
 ## Example 3: Beam3D Quaternion Nonlinear Test
 
 The present test demonstrates the geometrically nonlinear beahvior of 3-D corotational
-beam plane frame structure and can be found **Beam3DQuaternionNonlinearTest.PlaneFrameTest()**.
+beam portal frame structure and can be found in **Beam3DQuaternionNonlinearTest.PlaneFrameTest()**.
 The plane frame structure consists of three (3) elements and four (4) nodes.
 
 Define the mechanical properties, nodal loads, number of nodes, number of elements and 
@@ -110,7 +110,7 @@ model.Loads.Add(new Load() { Amount = nodalLoad, Node = model.NodesDictionary[mo
 ```
 
 Define Skyline solver, Structural provider, Load Control (i.e Newton-Raphson) chlid analyzer and
-Satic parent analyzer:
+Static parent analyzer:
 ```csharp
 // Solver
 var solverBuilder = new SkylineSolver.Builder();
