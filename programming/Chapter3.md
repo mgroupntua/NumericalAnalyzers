@@ -1,4 +1,4 @@
-## Example 3: Beam3D Quaternion Nonlinear Test
+## Example 3: Beam3D Quaternion Nonlinear Example
 
 The present test demonstrates the geometrically nonlinear beahvior of 3-D corotational
 beam portal frame structure and can be found in **Beam3DQuaternionNonlinearTest.PlaneFrameTest()**.
@@ -135,13 +135,6 @@ childAnalyzer.LogFactories[1] = new LinearAnalyzerLogFactory(new int[] { 0 });
 
 parentAnalyzer.Initialize();
 parentAnalyzer.Solve();
-```
-
-Check output results:
-```csharp
-// Check output
-DOFSLog log = (DOFSLog)childAnalyzer.Logs[1][0];
-Assert.Equal(120.1108698752, log.DOFValues[0], 2);
 ```
 
 
