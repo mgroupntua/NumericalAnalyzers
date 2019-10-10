@@ -7,6 +7,5 @@ Here you can find information about how to use this library in small scale scena
 - [Chapter 3 - Beam3D Quaternion Nonlinear Test](programming/Chapter3.md)
 - [Chapter 4 - Newmark Dynamic Analysis Tests](programming/Chapter4.md)
 - [Chapter 5 - Beam2D Newmark Dynamic Analysis Test](programming/Chapter5.md)
-- [Chapter 6 - Thermal Dynamic Analysis Test](programming/Chapter6.md)
 
 
