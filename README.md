@@ -1,3 +1,6 @@
+![alt text](http://mgroup.ntua.gr/wp-content/uploads/2018/05/MGroup52.png "MGroup")
+
+
 # MSolve.Analyzers
 
 ## Features
