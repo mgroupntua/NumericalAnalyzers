@@ -7,8 +7,8 @@ namespace MGroup.Analyzers
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Interfaces;
 	using MGroup.MSolve.Logging.Interfaces;
-	using MGroup.Solvers;
-	using MGroup.Solvers.LinearSystems;
+	using MGroup.MSolve.Solvers;
+	using MGroup.MSolve.Solvers.LinearSystems;
 
 	/// <summary>
 	/// This class solves static problems.

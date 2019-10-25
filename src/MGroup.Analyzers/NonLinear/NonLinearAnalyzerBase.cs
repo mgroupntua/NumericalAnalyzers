@@ -4,12 +4,13 @@ namespace MGroup.Analyzers.NonLinear
 	using System.Collections.Generic;
 
 	using MGroup.Analyzers.Interfaces;
+	using MGroup.Analyzers.Logging;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Interfaces;
 	using MGroup.MSolve.Logging;
 	using MGroup.MSolve.Logging.Interfaces;
-	using MGroup.Solvers;
-	using MGroup.Solvers.LinearSystems;
+	using MGroup.MSolve.Solvers;
+	using MGroup.MSolve.Solvers.LinearSystems;
 
 	/// <summary>
 	/// This class represents the base class of all nonlinear anaylsers and contains the basic information necessary for other analyzers

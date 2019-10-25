@@ -11,8 +11,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MGroup.FEM" Version="1.0.140" />
-    <PackageReference Include="MGroup.Problems" Version="1.0.160" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.13.0" />
     <PackageReference Include="OpenCover" Version="4.7.922" />

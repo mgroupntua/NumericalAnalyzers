@@ -5,10 +5,11 @@ namespace MGroup.Analyzers.NonLinear
 	using System.Diagnostics;
 
 	using MGroup.Analyzers.Interfaces;
+	using MGroup.Analyzers.Logging;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Interfaces;
 	using MGroup.MSolve.Logging;
-	using MGroup.Solvers;
+	using MGroup.MSolve.Solvers;
 
 	public class LoadControlAnalyzer : NonLinearAnalyzerBase
 	{

@@ -5,12 +5,13 @@ namespace MGroup.Analyzers.Dynamic
 	using System.Diagnostics;
 
 	using MGroup.Analyzers.Interfaces;
+	using MGroup.Analyzers.Logging;
 	using MGroup.LinearAlgebra.Vectors;
 	using MGroup.MSolve.Discretization.Interfaces;
 	using MGroup.MSolve.Logging;
 	using MGroup.MSolve.Logging.Interfaces;
-	using MGroup.Solvers;
-	using MGroup.Solvers.LinearSystems;
+	using MGroup.MSolve.Solvers;
+	using MGroup.MSolve.Solvers.LinearSystems;
 
 	public class NewmarkDynamicAnalyzer : INonLinearParentAnalyzer
 	{

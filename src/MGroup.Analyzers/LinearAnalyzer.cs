@@ -8,8 +8,8 @@ namespace MGroup.Analyzers
 	using MGroup.MSolve.Discretization.FreedomDegrees;
 	using MGroup.MSolve.Discretization.Interfaces;
 	using MGroup.MSolve.Logging.Interfaces;
-	using MGroup.Solvers;
-	using MGroup.Solvers.LinearSystems;
+	using MGroup.MSolve.Solvers;
+	using MGroup.MSolve.Solvers.LinearSystems;
 
 	/// <summary>
 	/// This class solves the linear system.

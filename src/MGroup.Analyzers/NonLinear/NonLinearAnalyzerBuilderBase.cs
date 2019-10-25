@@ -5,7 +5,7 @@ namespace MGroup.Analyzers.NonLinear
 
 	using MGroup.Analyzers.Interfaces;
 	using MGroup.MSolve.Discretization.Interfaces;
-	using MGroup.Solvers;
+	using MGroup.MSolve.Solvers;
 
 	public abstract class NonLinearAnalyzerBuilderBase
 	{
