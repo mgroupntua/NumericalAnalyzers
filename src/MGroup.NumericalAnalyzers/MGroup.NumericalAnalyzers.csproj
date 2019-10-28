@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>George Stavroulakis, George Soimoiris, Serafeim Bakalakos</Authors>
+    <Product>MSolve</Product>
+    <Description>A series of classes pertaining to the solution of non-linear and transient formulations of computational mechanics problems</Description>
+    <PackageProjectUrl>http://mgroup.ntua.gr</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mgroupntua/NumericalAnalyzers</RepositoryUrl>
+    <PackageIconUrl>https://github.com/mgroupntua/NumericalAnalyzers/raw/develop/MGroupNumericalAnalyzers.png</PackageIconUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MGroup.LinearAlgebra" Version="1.0.310" />
+    <PackageReference Include="MGroup.MSolve.AnalysisWorkflow" Version="1.0.311" />
+    <PackageReference Include="MGroup.MSolve.Discretization" Version="1.0.311" />
+    <PackageReference Include="MGroup.MSolve.Logging" Version="1.0.311" />
+    <PackageReference Include="MGroup.MSolve.Solution" Version="1.0.311" />
+  </ItemGroup>
+
+</Project>
