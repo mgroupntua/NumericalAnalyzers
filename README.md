@@ -1,8 +1,8 @@
-[mgroupntua.github.io/MSolve.Analyzers](https://mgroupntua.github.io/MSolve.Analyzers)	
+[mgroupntua.github.io/NumericalAnalyzers](https://mgroupntua.github.io/NumericalAnalyzers)	
 ===================	
 
 
-Here, you can find all documentation related to the [MSolve.Analyzers](https://github.com/mgroupntua/MSolve.Analyzers) repo	
+Here, you can find all documentation related to the [NumericalAnalyzers](https://github.com/mgroupntua/NumericalAnalyzers) repo	
 
 
 You can find all of open-source coding activities of [MGroup](http://mgroup.ntua.gr) at [mgroupntua.github.io](https://mgroupntua.github.io).	
