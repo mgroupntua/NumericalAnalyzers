@@ -1,22 +1,23 @@
+using MGroup.NumericalAnalyzers.Dynamic;
+using MGroup.FEM.Elements;
+using MGroup.FEM.Entities;
+using MGroup.LinearAlgebra.Vectors;
+using MGroup.Constitutive;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Discretization.Commons;
+using MGroup.MSolve.Discretization.FreedomDegrees;
+using MGroup.MSolve.Discretization.Loads;
+using MGroup.MSolve.Discretization.Mesh;
+using MGroup.Solvers.Direct;
+using Xunit;
+using MGroup.Materials;
+using MGroup.Constitutive.Thermal;
+using MGroup.NumericalAnalyzers;
+
 namespace MGroup.Analyzers.Tests
 {
-	using MGroup.NumericalAnalyzers.Dynamic;
-	using MGroup.FEM.Elements;
-	using MGroup.FEM.Entities;
-	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.Materials;
-	using MGroup.MSolve.Discretization;
-	using MGroup.MSolve.Discretization.Commons;
-	using MGroup.MSolve.Discretization.FreedomDegrees;
-	using MGroup.MSolve.Discretization.Loads;
-	using MGroup.MSolve.Discretization.Mesh;
-	using MGroup.Solvers.Direct;
-	using Xunit;
-	using MGroup.Constitutive.Thermal;
-	using MGroup.NumericalAnalyzers;
-
-	public class ThermalDynamicAnalysisTest
-	{
+    public class ThermalBenchmarkProvatidis11_2Dynamic
+    {
 		private const int subdomainID = 0;
 
 		[Fact]
@@ -34,17 +35,10 @@ namespace MGroup.Analyzers.Tests
 			//                                                   dofs:   1,   2,   4,   5,   7,   8
 			var expectedSolution = Vector.CreateFromArray(new double[] { 150, 200, 150, 200, 150, 200 });
 			int numFreeDofs = 6;
-			if (solution.Length != 6)
-			{
-				return false;
-			}
-
+			if (solution.Length != 6) return false;
 			for (int i = 0; i < numFreeDofs; ++i)
 			{
-				if (!comparer.AreEqual(expectedSolution[i], solution[i]))
-				{
-					return false;
-				}
+				if (!comparer.AreEqual(expectedSolution[i], solution[i])) return false;
 			}
 			return true;
 		}
@@ -74,10 +68,7 @@ namespace MGroup.Analyzers.Tests
 			nodes[7] = new Node(id: 7, x: 1.0, y: 2.0);
 			nodes[8] = new Node(id: 8, x: 2.0, y: 2.0);
 
-			for (int i = 0; i < numNodes; ++i)
-			{
-				model.NodesDictionary[i] = nodes[i];
-			}
+			for (int i = 0; i < numNodes; ++i) model.NodesDictionary[i] = nodes[i];
 
 			// Elements
 			int numElements = 4;
@@ -91,11 +82,7 @@ namespace MGroup.Analyzers.Tests
 			for (int i = 0; i < numElements; ++i)
 			{
 				var elementWrapper = new Element() { ID = i, ElementType = elements[i] };
-				foreach (var node in elements[i].Nodes)
-				{
-					elementWrapper.AddNode(node);
-				}
-
+				foreach (var node in elements[i].Nodes) elementWrapper.AddNode(node);
 				model.ElementsDictionary[i] = elementWrapper;
 				model.SubdomainsDictionary[subdomainID].Elements.Add(elementWrapper);
 			}
