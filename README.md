@@ -1,7 +1,7 @@
 ![alt text](http://mgroup.ntua.gr/wp-content/uploads/2018/05/MGroup52.png "MGroup")
 
 
-# MSolve.Analyzers
+# NumericalAnalyzers
 
 ## Features
 
@@ -18,7 +18,7 @@ procedures:
     - Preconditioned Conjugate Gradient (PCG) method
 
 More information about the above mentioned methods can be found in the section of
-**MSolve.Solvers**.
+**Solvers**.
 
 The solution of nonlinear static equations can be obtained by:
 
@@ -65,11 +65,11 @@ You can choose either to clone the solution or downloads it as a zip file.
 
 ![alt text](https://github.com/mgroupntua/MSolve.Edu/blob/master/Images/CloneOrDownload.png "1")
 
-2. Click **Download ZIP** option. **MSolve.Analyzers** will be downloaded as a ZIP file.
+2. Click **Download ZIP** option. **MGroup.NumericalAnalyzers** will be downloaded as a ZIP file.
 
 3. Extract the ZIP file to the folder of choice.
 
-4. Double click on **MSolve.Analyzers.sln** file to open the code with Visual Studio
+4. Double click on **MGroup.NumericalAnalyzers.sln** file to open the code with Visual Studio
 
 
 
