@@ -11,13 +11,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MGroup.Constitutive" Version="1.0.329" />
-    <PackageReference Include="MGroup.FEM" Version="1.0.326" />
-    <PackageReference Include="MGroup.MSolve.Solution" Version="1.0.322" />
-    <PackageReference Include="MGroup.Solvers" Version="1.0.330" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.13.0" />
-    <PackageReference Include="MSolve.Discretization" Version="1.0.291" />
     <PackageReference Include="OpenCover" Version="4.7.922" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />

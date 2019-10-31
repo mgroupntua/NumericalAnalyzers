@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using MGroup.LinearAlgebra.Vectors;
+using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Discretization.Commons;
-using MGroup.MSolve.Discretization.FreedomDegrees;
-using MGroup.MSolve.Discretization.Interfaces;
 
 //TODO: finding the contributing elements and the corresponding local dof indices can be done only once in the constructor.
 namespace MGroup.NumericalAnalyzers.Logging

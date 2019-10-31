@@ -3,8 +3,6 @@ using System.IO;
 using System.Linq;
 using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Discretization.FreedomDegrees;
-using MGroup.MSolve.Discretization.Interfaces;
 
 //TODO: This class should only extract data. How to output them (print in .txt, .xlsx, etc) should be done by different or
 //      child classes

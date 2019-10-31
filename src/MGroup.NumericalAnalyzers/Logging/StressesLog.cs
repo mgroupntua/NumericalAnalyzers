@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Discretization.Interfaces;
-using MGroup.MSolve.Logging.Interfaces;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Logging;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {

@@ -1,15 +1,16 @@
+using System;
+using System.Collections.Generic;
+using MGroup.MSolve.AnalysisWorkflow;
+using MGroup.MSolve.AnalysisWorkflow.Providers;
+using MGroup.NumericalAnalyzers.Logging;
+using MGroup.LinearAlgebra.Vectors;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Logging;
+using MGroup.MSolve.Solution;
+using MGroup.MSolve.Solution.LinearSystems;
+
 namespace MGroup.NumericalAnalyzers.NonLinear
 {
-	using System;
-	using System.Collections.Generic;
-
-	using MGroup.MSolve.AnalysisWorkflow;
-	using MGroup.NumericalAnalyzers.Logging;
-	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.MSolve.Discretization.Interfaces;
-	using MGroup.MSolve.Logging.Interfaces;
-	using MGroup.MSolve.Solution;
-	using MGroup.MSolve.Solution.LinearSystems;
 
 	/// <summary>
 	/// This class represents the base class of all nonlinear anaylsers and contains the basic information necessary for other analyzers

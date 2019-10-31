@@ -1,16 +1,15 @@
+using System;
+using System.Collections.Generic;
+using MGroup.MSolve.AnalysisWorkflow;
+using MGroup.MSolve.AnalysisWorkflow.Providers;
+using MGroup.LinearAlgebra.Vectors;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Logging;
+using MGroup.MSolve.Solution;
+using MGroup.MSolve.Solution.LinearSystems;
+
 namespace MGroup.NumericalAnalyzers
 {
-	using System;
-	using System.Collections.Generic;
-
-	using MGroup.MSolve.AnalysisWorkflow;
-	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.MSolve.Discretization.FreedomDegrees;
-	using MGroup.MSolve.Discretization.Interfaces;
-	using MGroup.MSolve.Logging.Interfaces;
-	using MGroup.MSolve.Solution;
-	using MGroup.MSolve.Solution.LinearSystems;
-
 	/// <summary>
 	/// This class solves the linear system.
 	/// </summary>

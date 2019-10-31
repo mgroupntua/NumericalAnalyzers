@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MGroup.MSolve.Logging.Interfaces;
+using MGroup.MSolve.Logging;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {

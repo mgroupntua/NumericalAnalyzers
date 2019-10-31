@@ -1,13 +1,11 @@
+using System;
+using System.Collections.Generic;
+using MGroup.MSolve.AnalysisWorkflow;
+using MGroup.LinearAlgebra.Vectors;
+using MGroup.MSolve.Discretization;
+
 namespace MGroup.NumericalAnalyzers.NonLinear
 {
-	using System;
-	using System.Collections.Generic;
-
-	using MGroup.MSolve.AnalysisWorkflow;
-	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.MSolve.Discretization.FreedomDegrees;
-	using MGroup.MSolve.Discretization.Interfaces;
-
 	/// <summary>
 	/// Subdomain state update class that accounts for non zero initial conditions (displacements).
 	/// Authors: Gerasimos Sotiropoulos

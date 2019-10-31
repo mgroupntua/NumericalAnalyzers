@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Logging.Interfaces;
+using MGroup.MSolve.Logging;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Logging.Interfaces;
+using MGroup.MSolve.Logging;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {

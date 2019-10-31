@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using MGroup.MSolve.Discretization.Interfaces;
-using MGroup.MSolve.Logging.Interfaces;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Logging;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {

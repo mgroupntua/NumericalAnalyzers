@@ -1,17 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using MGroup.MSolve.AnalysisWorkflow;
+using MGroup.MSolve.AnalysisWorkflow.Providers;
+using MGroup.NumericalAnalyzers.Logging;
+using MGroup.LinearAlgebra.Vectors;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Logging;
+using MGroup.MSolve.Solution;
+using MGroup.MSolve.Solution.LinearSystems;
+
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-
-	using MGroup.MSolve.AnalysisWorkflow;
-	using MGroup.NumericalAnalyzers.Logging;
-	using MGroup.LinearAlgebra.Vectors;
-	using MGroup.MSolve.Discretization.Interfaces;
-	using MGroup.MSolve.Logging.Interfaces;
-	using MGroup.MSolve.Solution;
-	using MGroup.MSolve.Solution.LinearSystems;
-
 	public class NewmarkDynamicAnalyzer : INonLinearParentAnalyzer
 	{
 		/// <summary>
