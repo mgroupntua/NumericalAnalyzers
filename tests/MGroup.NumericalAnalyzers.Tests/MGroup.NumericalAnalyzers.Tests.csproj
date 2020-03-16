@@ -7,10 +7,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="MGroup.NumericalAnalyzers.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.msbuild" Version="2.6.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="MGroup.Constitutive.Structural" Version="1.0.347" />
+    <PackageReference Include="MGroup.Constitutive.Thermal" Version="1.0.347" />
+    <PackageReference Include="MGroup.FEM.Structural" Version="1.0.348" />
+    <PackageReference Include="MGroup.FEM.Thermal" Version="1.0.348" />
+    <PackageReference Include="MGroup.MSolve.Discretization" Version="1.0.343" />
+    <PackageReference Include="MGroup.Solvers" Version="1.0.344" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.13.0" />
     <PackageReference Include="OpenCover" Version="4.7.922" />
