@@ -69,6 +69,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 						firstError = errorNorm;
 					}
 
+					if (IncrementalDisplacementsLog != null) IncrementalDisplacementsLog.StoreDisplacements(uPlusdu);
+
 					if (TotalDisplacementsPerIterationLog != null)
 					{
 						TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
