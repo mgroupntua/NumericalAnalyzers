@@ -8,6 +8,7 @@ using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Logging;
 using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.LinearSystems;
+using ISAAR.MSolve.Logging;
 
 namespace MGroup.NumericalAnalyzers.NonLinear
 {
@@ -54,6 +55,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		public Dictionary<int, IAnalyzerLog[]> Logs { get; } = new Dictionary<int, IAnalyzerLog[]>();
 
 		public TotalDisplacementsPerIterationLog TotalDisplacementsPerIterationLog { get; set; }
+
+		public IncrementalDisplacementsLog IncrementalDisplacementsLog { get; set; }
 
 		public Dictionary<int, TotalLoadsDisplacementsPerIncrementLog> IncrementalLogs { get; }
 			= new Dictionary<int, TotalLoadsDisplacementsPerIncrementLog>();
