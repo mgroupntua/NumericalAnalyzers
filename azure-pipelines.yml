@@ -21,7 +21,7 @@ variables:
   Major: '1'
   Minor: '0'
   Patch: '$(Build.BuildId)'
-  testProject: 'tests/MGroup.NumericalAnalyzers.Tests'
+  # testProject: 'tests/MGroup.NumericalAnalyzers.Tests'
 
 steps:
 - task: DotNetCoreCLI@2
@@ -58,9 +58,9 @@ steps:
     verbosityPack: 'Minimal'
     configuration: '$(buildConfiguration)'
 
-- script: |
-    dotnet test --logger trx --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=$(Build.SourcesDirectory)/coverage/ $(testProject)
-  displayName: 'Runs tests'
+# - script: |
+#     dotnet test --logger trx --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=$(Build.SourcesDirectory)/coverage/ $(testProject)
+#   displayName: 'Runs tests'
 
 
 # - task: SonarCloudAnalyze@1
@@ -71,10 +71,10 @@ steps:
 #   inputs:
 #     pollingTimeoutSec: '300'
 
-- task: PublishTestResults@2
-  inputs:
-    testRunner: VSTest
-    testResultsFiles: '**/*.trx'
+# - task: PublishTestResults@2
+#   inputs:
+#     testRunner: VSTest
+#     testResultsFiles: '**/*.trx'
 
 # - task: PublishCodeCoverageResults@1
 #   inputs:
