@@ -7,9 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{ED2BAFDF-805
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{BBB6D94B-2327-46D2-9737-3E4215CC0E27}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MGroup.NumericalAnalyzers", "src\MGroup.NumericalAnalyzers\MGroup.NumericalAnalyzers.csproj", "{0194CED3-AEB3-418E-A2C0-16FC0221A283}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MGroup.NumericalAnalyzers.Tests", "tests\MGroup.NumericalAnalyzers.Tests\MGroup.NumericalAnalyzers.Tests.csproj", "{33FCFB47-3997-4A8D-B107-97095EE690E7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MGroup.NumericalAnalyzers", "src\MGroup.NumericalAnalyzers\MGroup.NumericalAnalyzers.csproj", "{0194CED3-AEB3-418E-A2C0-16FC0221A283}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,17 +19,12 @@ Global
 		{0194CED3-AEB3-418E-A2C0-16FC0221A283}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0194CED3-AEB3-418E-A2C0-16FC0221A283}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0194CED3-AEB3-418E-A2C0-16FC0221A283}.Release|Any CPU.Build.0 = Release|Any CPU
-		{33FCFB47-3997-4A8D-B107-97095EE690E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{33FCFB47-3997-4A8D-B107-97095EE690E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{33FCFB47-3997-4A8D-B107-97095EE690E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{33FCFB47-3997-4A8D-B107-97095EE690E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0194CED3-AEB3-418E-A2C0-16FC0221A283} = {ED2BAFDF-8057-4DD0-AD08-242A8378A346}
-		{33FCFB47-3997-4A8D-B107-97095EE690E7} = {BBB6D94B-2327-46D2-9737-3E4215CC0E27}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {58765B1F-F7F5-4640-9832-B5CC212DF640}
