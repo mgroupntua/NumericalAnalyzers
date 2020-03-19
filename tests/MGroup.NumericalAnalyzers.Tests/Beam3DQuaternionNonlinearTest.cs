@@ -2,19 +2,19 @@ namespace MGroup.Analyzers.Tests
 {
 	using System.Collections.Generic;
 
-	using MGroup.NumericalAnalyzers.NonLinear;
+	using MGroup.Constitutive.Structural;
+	using MGroup.Constitutive.Structural.ContinuumElements;
 	using MGroup.FEM.Elements.SupportiveClasses;
 	using MGroup.FEM.Entities;
+	using MGroup.FEM.Structural.Elements;
 	using MGroup.MSolve.Discretization;
 	using MGroup.MSolve.Discretization.Loads;
-	using MGroup.NumericalAnalyzers.Logging;
 	using MGroup.MSolve.Solution;
+	using MGroup.NumericalAnalyzers;
+	using MGroup.NumericalAnalyzers.Logging;
+	using MGroup.NumericalAnalyzers.NonLinear;
 	using MGroup.Solvers.Direct;
 	using Xunit;
-	using MGroup.Constitutive.Structural.ContinuumElements;
-	using MGroup.Constitutive.Structural;
-	using MGroup.NumericalAnalyzers;
-	using MGroup.FEM.Structural.Elements;
 
 	public class Beam3DQuaternionNonlinearTest
 	{
