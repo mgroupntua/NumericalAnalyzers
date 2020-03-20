@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
@@ -15,12 +15,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MGroup.Constitutive.Structural" Version="1.0.347" />
-    <PackageReference Include="MGroup.Constitutive.Thermal" Version="1.0.347" />
-    <PackageReference Include="MGroup.FEM.Structural" Version="1.0.348" />
-    <PackageReference Include="MGroup.FEM.Thermal" Version="1.0.348" />
-    <PackageReference Include="MGroup.MSolve.Discretization" Version="1.0.343" />
-    <PackageReference Include="MGroup.Solvers" Version="1.0.344" />
+    <PackageReference Include="MGroup.Constitutive.Structural" Version="0.1.0-unstable.31" />
+    <PackageReference Include="MGroup.Constitutive.Thermal" Version="0.1.0-unstable.31" />
+    <PackageReference Include="MGroup.FEM.Structural" Version="0.1.0-unstable.22" />
+    <PackageReference Include="MGroup.FEM.Thermal" Version="0.1.0-unstable.22" />
+    <PackageReference Include="MGroup.MSolve.Discretization" Version="0.1.0-unstable.37" />
+    <PackageReference Include="MGroup.Solvers" Version="0.1.0-unstable.27" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="Moq" Version="4.13.0" />
     <PackageReference Include="OpenCover" Version="4.7.922" />
