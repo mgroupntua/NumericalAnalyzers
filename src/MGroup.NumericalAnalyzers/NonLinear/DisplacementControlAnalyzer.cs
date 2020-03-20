@@ -1,16 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using MGroup.MSolve.AnalysisWorkflow;
-using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.NumericalAnalyzers.Logging;
-using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystems;
-
 namespace MGroup.NumericalAnalyzers.NonLinear
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+
+	using MGroup.LinearAlgebra.Vectors;
+	using MGroup.MSolve.AnalysisWorkflow;
+	using MGroup.MSolve.AnalysisWorkflow.Providers;
+	using MGroup.MSolve.Discretization;
+	using MGroup.MSolve.Solution;
+	using MGroup.MSolve.Solution.LinearSystems;
+	using MGroup.NumericalAnalyzers.Logging;
+
 	/// <summary>
 	/// This class solves the nonlinear system of equations using the displacement control method
 	/// </summary>
@@ -55,6 +56,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 				int iteration = 0;
 				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
 				{
+					if (iteration == maxIterationsPerIncrement - 1) return;
+					if (Double.IsNaN(errorNorm)) return;
 					AddEquivalentNodalLoadsToRHS(increment, iteration);
 					solver.Solve();
 
@@ -77,9 +80,10 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 						{
 							int subdomainID = subdomainLogPair.Key;
 							TotalLoadsDisplacementsPerIncrementLog log = subdomainLogPair.Value;
-							log.LogTotalDataForIncrement(increment, iteration, errorNorm,
-								uPlusdu[subdomainID], internalRhsVectors[subdomainID]);
+							log.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu[subdomainID], internalRhsVectors[subdomainID]);
 						}
+						provider.Reset();
+						BuildMatrices();
 						break;
 					}
 
@@ -107,7 +111,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			}
 		}
 
-		private void AddEquivalentNodalLoadsToRHS(int iteration, int iteration1)
+		private void AddEquivalentNodalLoadsToRHS(int currentIncrement, int iteration)
 		{
 			if (iteration != 0)
 			{
@@ -118,7 +122,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			{
 				int id = linearSystem.Subdomain.ID;
 
-				double scalingFactor = 1;
+				double scalingFactor = 1.0 / (currentIncrement + 1);
 				IVector equivalentNodalLoads = provider.DirichletLoadsAssembler.GetEquivalentNodalLoads(
 					linearSystem.Subdomain,
 					u[id], scalingFactor);
@@ -137,7 +141,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 			foreach (ILinearSystem linearSystem in linearSystems.Values)
 			{
-				double scalingFactor = 1;
+				double scalingFactor = ((double)(currentIncrement + 1)) / currentIncrement;
 				subdomainUpdaters[linearSystem.Subdomain.ID].ScaleConstraints(scalingFactor);
 			}
 		}
