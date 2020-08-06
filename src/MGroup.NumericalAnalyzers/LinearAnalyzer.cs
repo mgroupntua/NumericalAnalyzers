@@ -39,6 +39,7 @@ namespace MGroup.NumericalAnalyzers
 		public Dictionary<int, IAnalyzerLog[]> Logs { get; } = new Dictionary<int, IAnalyzerLog[]>();
 
 		public IParentAnalyzer ParentAnalyzer { get; set; }
+		public Dictionary<int, IVector> Responses { get; set; }=new Dictionary<int, IVector>();
 
 		public void BuildMatrices()
 		{
@@ -52,15 +53,25 @@ namespace MGroup.NumericalAnalyzers
 
 		public void Initialize(bool isFirstAnalysis)
 		{
+			foreach (var linearSystem in linearSystems)
+			{
+				Responses.Add(linearSystem.Key, null);
+			}
+
 			InitializeLogs();
 		}
 
 		public void Solve()
 		{
-			DateTime start = DateTime.Now;
+			var start = DateTime.Now;
 			AddEquivalentNodalLoadsToRHS();
 			solver.Solve();
-			DateTime end = DateTime.Now;
+			foreach (var linearSystem in solver.LinearSystems)
+			{
+				Responses[linearSystem.Key] = linearSystem.Value.Solution.Copy();
+			}
+
+			var end = DateTime.Now;
 			StoreLogResults(start, end);
 		}
 

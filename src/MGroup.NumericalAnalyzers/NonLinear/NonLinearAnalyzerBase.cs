@@ -66,6 +66,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			get => parentAnalyzer;
 			set => parentAnalyzer = (INonLinearParentAnalyzer)value;
 		}
+		public Dictionary<int, IVector> Responses { get ; set ; }=new Dictionary<int, IVector>();
 
 		/// <summary>
 		/// Builds the tangent stiffness matrix of the system.
