@@ -80,19 +80,19 @@ steps:
     IndexSources: false
     SymbolServerType: 'TeamServices'
 
- - task: SonarCloudAnalyze@1
-   displayName: "Performs SonarCloud Analysis"
+- task: SonarCloudAnalyze@1
+  displayName: "Performs SonarCloud Analysis"
 
- - task: SonarCloudPublish@1
-   displayName: 'Publish Quality Gate Results'
-   inputs:
-     pollingTimeoutSec: '300'
+- task: SonarCloudPublish@1
+  displayName: 'Publish Quality Gate Results'
+  inputs:
+    pollingTimeoutSec: '300'
      
- - task: PublishCodeCoverageResults@1
-   inputs:
-     summaryFileLocation: $(Build.SourcesDirectory)/coverage/Cobertura/Cobertura.xml
-     reportDirectory: $(Build.SourcesDirectory)/coverage/Cobertura
-     codecoverageTool: cobertura
+- task: PublishCodeCoverageResults@1
+  inputs:
+    summaryFileLocation: $(Build.SourcesDirectory)/coverage/Cobertura/Cobertura.xml
+    reportDirectory: $(Build.SourcesDirectory)/coverage/Cobertura
+    codecoverageTool: cobertura
 
 - task: DotNetCoreCLI@2
   name: dotnetPack
