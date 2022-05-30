@@ -5,10 +5,11 @@ using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.NumericalAnalyzers.Logging;
 using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Logging;
+using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystems;
+using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.MSolve.AnalysisWorkflow.Logging;
+using MGroup.MSolve.Solution.AlgebraicModel;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -50,18 +51,18 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private readonly double a6;
 		private readonly double a7;
 		private readonly IModel model;
-		private readonly IReadOnlyDictionary<int, ILinearSystem> linearSystems;
+		private readonly IAlgebraicModel algebraicModel;
 		private readonly ISolver solver;
-		private readonly IImplicitIntegrationProvider provider;
-		private Dictionary<int, IVector> rhs = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> uu = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> uum = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> uc = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> ucc = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> u = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> v = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> v1 = new Dictionary<int, IVector>();
-		private Dictionary<int, IVector> v2 = new Dictionary<int, IVector>();
+		private readonly ITransientAnalysisProvider provider;
+		private IGlobalVector rhs;
+		private IGlobalVector solution;
+		private IGlobalVector solutionOfPreviousStep;
+		private IGlobalVector firstOrderDerivativeOfSolution;
+		private IGlobalVector firstOrderDerivativeOfSolutionForRhs;
+		private IGlobalVector firstOrderDerivativeComponentOfRhs;
+		private IGlobalVector secondOrderDerivativeOfSolution;
+		private IGlobalVector secondOrderDerivativeOfSolutionForRhs;
+		private IGlobalVector secondOrderDerivativeComponentOfRhs;
 
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
@@ -74,11 +75,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized</param>
 		/// <param name="alpha">Instance of parameter "alpha" of the method that will be initialized</param>
 		/// <param name="delta">Instance of parameter "delta" of the method that will be initialized</param>
-		private NewmarkDynamicAnalyzer(IModel model, ISolver solver, IImplicitIntegrationProvider provider,
+		private NewmarkDynamicAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta)
 		{
 			this.model = model;
-			this.linearSystems = solver.LinearSystems;
+			this.algebraicModel = algebraicModel;
 			this.solver = solver;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
@@ -102,10 +103,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			a7 = delta * timeStep;
 		}
 
-		public Dictionary<int, IAnalyzerLog[]> Logs => null;
+		public IAnalysisWorkflowLog[] Logs => null;
 
-		public Dictionary<int, ImplicitIntegrationAnalyzerLog> ResultStorages { get; }
-			= new Dictionary<int, ImplicitIntegrationAnalyzerLog>();
+		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
 
@@ -114,25 +114,22 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public void BuildMatrices()
 		{
-			var coeffs = new ImplicitIntegrationCoefficients
+			var coeffs = new TransientAnalysisCoefficients
 			{
-				Mass = a0,
-				Damping = a1,
-				Stiffness = 1,
+				SecondOrderDerivativeCoefficient = a0,
+				FirstOrderDerivativeCoefficient = a1,
+				ZeroOrderDerivativeCoefficient = 1,
 			};
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				linearSystem.Matrix = provider.LinearCombinationOfMatricesIntoStiffness(coeffs, linearSystem.Subdomain);
-			}
+			provider.LinearCombinationOfMatricesIntoEffectiveMatrix(coeffs);
 		}
 
 		/// <summary>
 		/// Calculates inertia forces and damping forces.
 		/// </summary>
-		public IVector GetOtherRhsComponents(ILinearSystem linearSystem, IVector currentSolution)
+		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
-			IVector result = provider.MassMatrixVectorProduct(linearSystem.Subdomain, currentSolution);
-			IVector temp = provider.DampingMatrixVectorProduct(linearSystem.Subdomain, currentSolution);
+			IGlobalVector result = provider.SecondOrderDerivativeMatrixVectorProduct(currentSolution);
+			IGlobalVector temp = provider.FirstOrderDerivativeMatrixVectorProduct(currentSolution);
 			result.LinearCombinationIntoThis(a0, temp, a1);
 			return result;
 		}
@@ -144,30 +141,14 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			if (isFirstAnalysis)
 			{
+				//provider.GetProblemDofTypes();
 				model.ConnectDataStructures();
-				solver.OrderDofs(false);
-				foreach (ILinearSystem linearSystem in linearSystems.Values)
-				{
-					linearSystem.Reset();
-					linearSystem.Subdomain.Forces = Vector.CreateZero(linearSystem.Size);
-				}
-			}
-			else
-			{
-				foreach (ILinearSystem linearSystem in linearSystems.Values)
-				{
-					linearSystem.Reset();
-					linearSystem.Subdomain.Forces = Vector.CreateZero(linearSystem.Size);
-				}
+				algebraicModel.OrderDofs();
 			}
 
 			BuildMatrices();
 
-			model.AssignLoads(solver.DistributeNodalLoads);
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				linearSystem.RhsVector = linearSystem.Subdomain.Forces;
-			}
+			provider.AssignRhs();
 
 			InitializeInternalVectors();
 
@@ -191,11 +172,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				Debug.WriteLine("Newmark step: {0}", i);
 
-				IDictionary<int, IVector> rhsVectors = provider.GetRhsFromHistoryLoad(i);
-				foreach (var l in linearSystems.Values)
-				{
-					l.RhsVector = rhsVectors[l.Subdomain.ID];
-				}
+				AddExternalVelocitiesAndAccelerations(i * timeStep);
+				IGlobalVector rhsVector = provider.GetRhs(i * timeStep);
+				solver.LinearSystem.RhsVector = rhsVector; //TODOGoat: Perhaps the provider should set the rhs vector, like it does for the matrix. Either way the provider does this as a side effect
 
 				InitializeRhs();
 				CalculateRhsImplicit();
@@ -204,7 +183,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				ChildAnalyzer.Solve();
 				DateTime end = DateTime.Now;
 
-				UpdateVelocityAndAcceleration(i);
+				UpdateVelocityAndAcceleration();
 				UpdateResultStorages(start, end);
 			}
 		}
@@ -214,124 +193,90 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		private void CalculateRhsImplicit()
 		{
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				linearSystem.RhsVector = CalculateRhsImplicit(linearSystem, true);
-			}
-		}
+			secondOrderDerivativeOfSolutionForRhs = solution.LinearCombination(a0, firstOrderDerivativeOfSolution, a2);
+			secondOrderDerivativeOfSolutionForRhs.AxpyIntoThis(secondOrderDerivativeOfSolution, a3);
 
-		private IVector CalculateRhsImplicit(ILinearSystem linearSystem, bool addRhs)
-		{
-			int id = linearSystem.Subdomain.ID;
+			firstOrderDerivativeOfSolutionForRhs = solution.LinearCombination(a1, firstOrderDerivativeOfSolution, a4);
+			firstOrderDerivativeOfSolutionForRhs.AxpyIntoThis(secondOrderDerivativeOfSolution, a5);
 
-			uu[id] = v[id].LinearCombination(a0, v1[id], a2);
-			uu[id].AxpyIntoThis(v2[id], a3);
+			secondOrderDerivativeComponentOfRhs = provider.SecondOrderDerivativeMatrixVectorProduct(secondOrderDerivativeOfSolutionForRhs);
+			firstOrderDerivativeComponentOfRhs = provider.FirstOrderDerivativeMatrixVectorProduct(firstOrderDerivativeOfSolutionForRhs);
 
-			uc[id] = v[id].LinearCombination(a1, v1[id], a4);
-			uc[id].AxpyIntoThis(v2[id], a5);
-
-			uum[id] = provider.MassMatrixVectorProduct(linearSystem.Subdomain, uu[id]);
-			ucc[id] = provider.DampingMatrixVectorProduct(linearSystem.Subdomain, uc[id]);
-
-			IVector rhsResult = uum[id].Add(ucc[id]);
+			IGlobalVector rhsResult = secondOrderDerivativeComponentOfRhs.Add(firstOrderDerivativeComponentOfRhs);
+			bool addRhs = true;
 			if (addRhs)
 			{
-				rhsResult.AddIntoThis(rhs[id]);
+				rhsResult.AddIntoThis(rhs);
 			}
-
-			return rhsResult;
+			solver.LinearSystem.RhsVector = rhsResult;
 		}
-
 
 		private void InitializeInternalVectors()
 		{
-			uu.Clear();
-			uum.Clear();
-			uc.Clear();
-			ucc.Clear();
-			u.Clear();
-			v.Clear();
-			v1.Clear();
-			v2.Clear();
-			rhs.Clear();
+			secondOrderDerivativeOfSolutionForRhs = algebraicModel.CreateZeroVector();
+			secondOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
+			firstOrderDerivativeOfSolutionForRhs = algebraicModel.CreateZeroVector();
+			firstOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
+			solutionOfPreviousStep = algebraicModel.CreateZeroVector();
+			firstOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
+			secondOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
+			rhs = algebraicModel.CreateZeroVector();
 
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
+			if (solver.LinearSystem.Solution != null)
 			{
-				int id = linearSystem.Subdomain.ID;
-				uu.Add(id, linearSystem.CreateZeroVector());
-				uum.Add(id, linearSystem.CreateZeroVector());
-				uc.Add(id, linearSystem.CreateZeroVector());
-				ucc.Add(id, linearSystem.CreateZeroVector());
-				u.Add(id, linearSystem.CreateZeroVector());
-				v1.Add(id, linearSystem.CreateZeroVector());
-				v2.Add(id, linearSystem.CreateZeroVector());
-				rhs.Add(id, linearSystem.CreateZeroVector());
-
-				if (linearSystem.Solution != null)
-				{
-					v[id] = linearSystem.Solution.Copy();
-				}
-				else
-				{
-					v.Add(id, linearSystem.CreateZeroVector());
-				}
+				solution = solver.LinearSystem.Solution.Copy();
+			}
+			else
+			{
+				solution = algebraicModel.CreateZeroVector();
 			}
 		}
 
 		private void InitializeRhs()
 		{
-			ImplicitIntegrationCoefficients coeffs = new ImplicitIntegrationCoefficients
+			TransientAnalysisCoefficients coeffs = new TransientAnalysisCoefficients
 			{
-				Mass = a0,
-				Damping = a1,
-				Stiffness = 1,
+				SecondOrderDerivativeCoefficient = a0,
+				FirstOrderDerivativeCoefficient = a1,
+				ZeroOrderDerivativeCoefficient = 1,
 			};
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				provider.ProcessRhs(coeffs, linearSystem.Subdomain, linearSystem.RhsVector);
-				rhs[linearSystem.Subdomain.ID] = linearSystem.RhsVector.Copy();
-			}
+			provider.ProcessRhs(coeffs, solver.LinearSystem.RhsVector);
+			rhs.CopyFrom(solver.LinearSystem.RhsVector);
 		}
 
 		private void UpdateResultStorages(DateTime start, DateTime end)
 		{
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
+			if (ResultStorage != null)
 			{
-				int id = linearSystem.Subdomain.ID;
-				if (ResultStorages.ContainsKey(id))
+				foreach (var l in ChildAnalyzer.Logs)
 				{
-					if (ResultStorages[id] != null)
-					{
-						foreach (var l in ChildAnalyzer.Logs[id])
-						{
-							ResultStorages[id].StoreResults(start, end, l);
-						}
-					}
+					ResultStorage.StoreResults(start, end, l);
 				}
 			}
 		}
 
-		private void UpdateVelocityAndAcceleration(int timeStep)
+		private void AddExternalVelocitiesAndAccelerations(double time)
 		{
-			var externalVelocities = provider.GetVelocitiesOfTimeStep(timeStep);
-			var externalAccelerations = provider.GetAccelerationsOfTimeStep(timeStep);
+			IGlobalVector externalAccelerations = provider.GetSecondOrderDerivativeVectorFromBoundaryConditions(time);
+			secondOrderDerivativeOfSolution.AddIntoThis(externalAccelerations);
 
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				int id = linearSystem.Subdomain.ID;
-				u[id].CopyFrom(v[id]);
-				v[id].CopyFrom(linearSystem.Solution);
+			IGlobalVector externalVelocities = provider.GetFirstOrderDerivativeVectorFromBoundaryConditions(time);
+			firstOrderDerivativeOfSolution.AddIntoThis(externalVelocities);
+		}
 
-				IVector vv = v2[id].Add(externalAccelerations[id]);
+		private void UpdateVelocityAndAcceleration()
+		{
+			solutionOfPreviousStep.CopyFrom(solution);
+			solution.CopyFrom(solver.LinearSystem.Solution);
 
-				v2[id] = v[id].Subtract(u[id]);
-				v2[id].LinearCombinationIntoThis(a0, v1[id], -a2);
-				v2[id].AxpyIntoThis(vv, -a3);
+			var secondOrderDerivativeOfSolutionOfPreviousStep = secondOrderDerivativeOfSolution.Copy();
 
-				v1[id].AddIntoThis(externalVelocities[id]);
-				v1[id].AxpyIntoThis(vv, a6);
-				v1[id].AxpyIntoThis(v2[id], a7);
-			}
+			secondOrderDerivativeOfSolution = solution.Subtract(solutionOfPreviousStep);
+			secondOrderDerivativeOfSolution.LinearCombinationIntoThis(a0, firstOrderDerivativeOfSolution, -a2);
+			secondOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
+
+			firstOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
+			firstOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolution, a7);
 		}
 
 		public class Builder
@@ -340,15 +285,17 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly double totalTime;
 			private readonly IChildAnalyzer childAnalyzer;
 			private readonly IModel model;
+			private readonly IAlgebraicModel algebraicModel;
 			private readonly ISolver solver;
-			private readonly IImplicitIntegrationProvider provider;
+			private readonly ITransientAnalysisProvider provider;
 			private double beta = 0.25;
 			private double gamma = 0.5;
 
-			public Builder(IModel model, ISolver solver, IImplicitIntegrationProvider provider,
+			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
 				IChildAnalyzer childAnalyzer, double timeStep, double totalTime)
 			{
 				this.model = model;
+				this.algebraicModel = algebraicModel;
 				this.solver = solver;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
@@ -436,7 +383,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public NewmarkDynamicAnalyzer Build()
-				=> new NewmarkDynamicAnalyzer(model, solver, provider, childAnalyzer, timeStep, totalTime, beta, gamma);
+				=> new NewmarkDynamicAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, beta, gamma);
 		}
 	}
 }

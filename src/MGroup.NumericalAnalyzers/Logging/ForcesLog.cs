@@ -1,20 +1,24 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using MGroup.LinearAlgebra.Vectors;
+
+using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Logging;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {
-    public class ForcesLog : IAnalyzerLog
+	public class ForcesLog : IAnalysisWorkflowLog
     {
-        private readonly IElement[] elements;
-        private readonly Dictionary<int, double[]> forces = new Dictionary<int, double[]>();
+        private readonly IElementType[] elements;
+		private readonly IVectorValueExtractor resultsExtractor;
+		private readonly Dictionary<int, double[]> forces = new Dictionary<int, double[]>();
 
-        public ForcesLog(IElement[] elements)
+        public ForcesLog(IElementType[] elements, IVectorValueExtractor resultsExtractor)
         {
             this.elements = elements;
+			this.resultsExtractor = resultsExtractor;
         }
 
         public Dictionary<int, double[]> Forces { get { return forces; } }
@@ -36,21 +40,20 @@ namespace MGroup.NumericalAnalyzers.Logging
 
         #region IResultStorage Members
 
-        public void StoreResults(DateTime startTime, DateTime endTime, IVectorView solutionVector)
+        public void StoreResults(DateTime startTime, DateTime endTime, IGlobalVector solutionVector)
         {
-            StartTime = startTime;
-            EndTime = endTime;
-            //double[] solution = ((Vector<double>)solutionVector).Data;
-            foreach (IElement e in elements)
-            {
-                double[] localVector = e.Subdomain.FreeDofOrdering.ExtractVectorElementFromSubdomain(e, solutionVector);
-                forces[e.ID] = e.ElementType.CalculateForcesForLogging(e, localVector);
+			StartTime = startTime;
+			EndTime = endTime;
+			foreach (IElementType e in elements)
+			{
+				double[] localVector = resultsExtractor.ExtractElementVector(solutionVector, e);
+				forces[e.ID] = e.CalculateResponseIntegralForLogging(localVector);
 
-                //for (int i = 0; i < stresses[e.ID].Length; i++)
-                //    Debug.Write(stresses[e.ID][i]);
-                //Debug.WriteLine("");
-            }
-        }
+				//for (int i = 0; i < stresses[e.ID].Length; i++)
+				//    Debug.Write(stresses[e.ID][i]);
+				//Debug.WriteLine("");
+			}
+		}
 
         #endregion
     }

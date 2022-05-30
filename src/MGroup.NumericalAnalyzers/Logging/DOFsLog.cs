@@ -1,44 +1,51 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
-using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Logging;
+
+using MGroup.MSolve.AnalysisWorkflow.Logging;
+using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Discretization.Dofs;
+using MGroup.MSolve.Discretization.Entities;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {
-    public class DOFSLog : IAnalyzerLog
+	public class DOFSLog : IAnalysisWorkflowLog
     {
-        private readonly int[] dofs;
-        private readonly Dictionary<int, double> dofValues = new Dictionary<int, double>();
+		private readonly IList<(INode, IDofType)> dofs;
+		private readonly IVectorValueExtractor resultsExtractor;
 
-        public DOFSLog(int[] dofs)
+        public DOFSLog(IList<(INode, IDofType)> dofs, IVectorValueExtractor resultsExtractor)
         {
             this.dofs = dofs;
-        }
+			this.resultsExtractor = resultsExtractor;
+		}
 
-        public Dictionary<int, double> DOFValues { get { return dofValues; } }
+		public Table<INode, IDofType, double> DOFValues { get; } = new Table<INode, IDofType, double>();
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
 
         public override string ToString()
         {
             StringBuilder s = new StringBuilder();
-            foreach (int dof in dofValues.Keys)
-                s.Append(String.Format("({0}): {1:e}; ", dof, dofValues[dof]));
-            return s.ToString();
+            foreach ((INode node, IDofType dof, double val) in DOFValues)
+			{
+				s.Append($"(node {node.ID}, dof {dof}): {val}; ");
+			}
+			return s.ToString();
         }
 
         #region IResultStorage Members
 
-        public void StoreResults(DateTime startTime, DateTime endTime, IVectorView solution)
+        public void StoreResults(DateTime startTime, DateTime endTime, IGlobalVector solution)
         {
             StartTime = startTime;
             EndTime = endTime;
-            foreach (int dof in dofs)
+            foreach ((INode node, IDofType dof) in dofs)
             {
-                dofValues[dof] = solution[dof];
-                Debug.WriteLine(solution[dof]);
+				DOFValues[node, dof] = resultsExtractor.ExtractSingleValue(solution, node, dof);
             }
         }
 

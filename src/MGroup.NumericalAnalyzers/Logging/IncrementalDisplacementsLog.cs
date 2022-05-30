@@ -1,45 +1,43 @@
-using MGroup.LinearAlgebra.Vectors;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace ISAAR.MSolve.Logging
+using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Discretization.Dofs;
+using MGroup.MSolve.Discretization.Entities;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
+
+namespace MGroup.NumericalAnalyzers.Logging
 {
-    public class IncrementalDisplacementsLog
+	public class IncrementalDisplacementsLog
     {
-        private readonly Dictionary<int, int[]> watchDofs;
-        private readonly List<Dictionary<int, Dictionary<int, double>>> dofDisplacementsPerIter;
+		private readonly IVectorValueExtractor resultsExtractor;
+		private readonly List<Table<INode, IDofType, double>> dofDisplacementsPerIter;
 
         /// <summary>
         /// Initializes a new instance of <see cref="IncrementalDisplacementsLog"/>.
         /// </summary>
         /// <param name="watchDofs">Which freedom degrees to track for each subdomain.</param>
-        public IncrementalDisplacementsLog(Dictionary<int, int[]> watchDofs)
+        public IncrementalDisplacementsLog(IList<(INode, IDofType)> watchDofs, IVectorValueExtractor resultsExtractor)
         {
-            this.watchDofs = watchDofs;
-            this.dofDisplacementsPerIter = new List<Dictionary<int, Dictionary<int, double>>>();
+            this.WatchDofs = watchDofs;
+			this.resultsExtractor = resultsExtractor;
+			this.dofDisplacementsPerIter = new List<Table<INode, IDofType, double>>();
         }
 
-        /// <summary>
-        /// Stores the total displacements = u_converged + du, for a new iteration.
-        /// </summary>
-        /// <param name="totalDisplacements">The total displacements for each subdomain.</param>
-        public void StoreDisplacements(Dictionary<int, IVector> totalDisplacements)
-        {
-            var currentIterDisplacements = new Dictionary<int, Dictionary<int, double>>();
-            foreach (var subdomainDofsPair in watchDofs)
-            {
-                int subdomainID = subdomainDofsPair.Key;
-                var subdomainDisplacements = new Dictionary<int, double>();
-                foreach (int dof in subdomainDofsPair.Value)
-                {
-                    subdomainDisplacements[dof] = totalDisplacements[subdomainID][dof];
-                }
-                currentIterDisplacements[subdomainID] = subdomainDisplacements;
-            }
-            dofDisplacementsPerIter.Add(currentIterDisplacements);
-        }
+		public IList<(INode, IDofType)> WatchDofs { get; }
 
-        public double GetTotalDisplacement(int iteration, int subdomainID, int dof) => dofDisplacementsPerIter[iteration][subdomainID][dof];
-    }
+		public void StoreDisplacements(IGlobalVector totalDisplacements)
+        {
+			var currentIterDisplacements = new Table<INode, IDofType, double>();
+			foreach ((INode node, IDofType dof) in WatchDofs)
+			{
+				currentIterDisplacements[node, dof] = resultsExtractor.ExtractSingleValue(totalDisplacements, node, dof);
+			}
+			dofDisplacementsPerIter.Add(currentIterDisplacements);
+		}
+
+        public double GetTotalDisplacement(int iteration, INode node, IDofType dof)
+			=> dofDisplacementsPerIter[iteration][node, dof];
+	}
 }

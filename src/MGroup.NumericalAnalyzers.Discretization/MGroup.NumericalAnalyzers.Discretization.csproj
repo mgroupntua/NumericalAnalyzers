@@ -23,4 +23,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MGroup.NumericalAnalyzers\MGroup.NumericalAnalyzers.csproj" />
+  </ItemGroup>
 </Project>

@@ -1,31 +1,37 @@
 using System;
-using System.Collections.Generic;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.NumericalAnalyzers.NonLinear;
 
-namespace MGroup.NumericalAnalyzers.NonLinear
+
+namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
 	public abstract class NonLinearAnalyzerBuilderBase
 	{
 		protected int maxIterationsPerIncrement = 1000;
 		protected readonly IModel model;
+		protected readonly IAlgebraicModel algebraicModel;
 		protected readonly int numIncrements;
 		protected int numIterationsForMatrixRebuild = 1;
 		protected readonly INonLinearProvider provider;
 		protected double residualTolerance = 1e-8;
 		protected readonly ISolver solver;
 
-		protected NonLinearAnalyzerBuilderBase(IModel model, ISolver solver, INonLinearProvider provider,
-			int numIncrements)
+		protected NonLinearAnalyzerBuilderBase(IModel model, IAlgebraicModel algebraicModel, ISolver solver, 
+			INonLinearProvider provider, int numIncrements)
 		{
 			//TODO: this should belong to all (child) analyzer builders
 			this.model = model;
+			this.algebraicModel = algebraicModel;
 			this.solver = solver;
 			this.provider = provider;
 			this.numIncrements = numIncrements;
-			SubdomainUpdaters = CreateDefaultSubdomainUpdaters();
+
+			ModelUpdater = new NonLinearModelUpdater(this.algebraicModel);
 		}
 
 		public int MaxIterationsPerIncrement
@@ -70,18 +76,6 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			}
 		}
 
-		public IReadOnlyDictionary<int, INonLinearSubdomainUpdater> SubdomainUpdaters { get; set; }
-
-		private IReadOnlyDictionary<int, INonLinearSubdomainUpdater> CreateDefaultSubdomainUpdaters()
-		{
-			int numSubdomains = model.Subdomains.Count;
-			var subdomainUpdaters = new Dictionary<int, INonLinearSubdomainUpdater>(numSubdomains);
-			for (int i = 0; i < numSubdomains; ++i)
-			{
-				subdomainUpdaters[model.Subdomains[i].ID] = new NonLinearSubdomainUpdater(model.Subdomains[i]);
-			}
-			return subdomainUpdaters;
-
-		}
+		public INonLinearModelUpdater ModelUpdater { get; set; }
 	}
 }

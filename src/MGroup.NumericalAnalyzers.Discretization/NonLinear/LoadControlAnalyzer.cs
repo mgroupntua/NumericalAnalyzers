@@ -1,14 +1,17 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.NumericalAnalyzers.Logging;
-using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
+using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.NumericalAnalyzers.NonLinear;
 
-namespace MGroup.NumericalAnalyzers.NonLinear
+
+namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
 	public class LoadControlAnalyzer : NonLinearAnalyzerBase
 	{
@@ -23,12 +26,13 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		/// <param name="maxIterationsPerIncrement">Number of maximum iterations within a load increment</param>
 		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
 		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
-		private LoadControlAnalyzer(IModel model, ISolver solver, INonLinearProvider provider,
-			IReadOnlyDictionary<int, INonLinearSubdomainUpdater> subdomainUpdaters,
+		private LoadControlAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
+			INonLinearModelUpdater modelUpdater,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
-			: base(model, solver, provider, subdomainUpdaters, numIncrements, maxIterationsPerIncrement,
+			: base(algebraicModel, solver, provider, modelUpdater, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
 		{ }
+
 
 		/// <summary>
 		/// Solves the nonlinear equations and calculates the displacements vector.
@@ -54,14 +58,14 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 						return;
 					}
 
-					if (Double.IsNaN(errorNorm))
+					if (double.IsNaN(errorNorm))
 					{
 						return;
 					}
 
 					solver.Solve();
-					Dictionary<int, IVector> internalRhsVectors = CalculateInternalRhs(increment, iteration);
-					double residualNormCurrent = UpdateResidualForcesAndNorm(increment, internalRhsVectors);
+					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
+					double residualNormCurrent = UpdateResidualForcesAndNorm(increment, internalRhsVector);
 					errorNorm = globalRhsNormInitial != 0 ? residualNormCurrent / globalRhsNormInitial : 0;
 
 					if (iteration == 0)
@@ -69,7 +73,10 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 						firstError = errorNorm;
 					}
 
-					if (IncrementalDisplacementsLog != null) IncrementalDisplacementsLog.StoreDisplacements(uPlusdu);
+					if (IncrementalDisplacementsLog != null)
+					{
+						IncrementalDisplacementsLog.StoreDisplacements(uPlusdu);
+					}
 
 					if (TotalDisplacementsPerIterationLog != null)
 					{
@@ -78,17 +85,13 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 					if (errorNorm < residualTolerance)
 					{
-						foreach (var subdomainLogPair in IncrementalLogs)
+						if (IncrementalLog != null)
 						{
-							int subdomainID = subdomainLogPair.Key;
-							TotalLoadsDisplacementsPerIncrementLog log = subdomainLogPair.Value;
-							log.LogTotalDataForIncrement(increment, iteration, errorNorm,
-								uPlusdu[subdomainID], internalRhsVectors[subdomainID]);
+							IncrementalLog.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu, internalRhsVector);
 						}
 						break;
 					}
 
-					SplitResidualForcesToSubdomains();
 					if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
 					{
 						provider.Reset();
@@ -104,16 +107,16 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		public class Builder : NonLinearAnalyzerBuilderBase
 		{
-			public Builder(IModel model, ISolver solver, INonLinearProvider provider, int numIncrements)
-				: base(model, solver, provider, numIncrements)
+			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements)
+				: base(model, algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;
 				ResidualTolerance = 1E-3;
 			}
 
-			public LoadControlAnalyzer Build() => new LoadControlAnalyzer(model, solver, provider, SubdomainUpdaters,
-					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
+			public LoadControlAnalyzer Build() => new LoadControlAnalyzer(algebraicModel, solver, provider, ModelUpdater,
+				numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
 		}
 	}
 }

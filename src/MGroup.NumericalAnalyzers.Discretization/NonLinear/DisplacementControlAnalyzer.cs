@@ -1,21 +1,24 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.NumericalAnalyzers.Logging;
-using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.Discretization;
+using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystems;
+using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.NumericalAnalyzers.NonLinear;
 
-namespace MGroup.NumericalAnalyzers.NonLinear
+namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
 	/// <summary>
 	/// This class solves the nonlinear system of equations using the displacement control method
 	/// </summary>
 	public class DisplacementControlAnalyzer : NonLinearAnalyzerBase
 	{
+		protected readonly IModel model; //this is not a permanent solution. Will be refactored
+
 		/// <summary>
 		/// This class solves the linearized geometrically nonlinear system of equations according to displacement control incremental-iterative method.
 		/// This only works if there are no nodal loads or any loading condition other than prescribed displacements.
@@ -28,12 +31,14 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		/// <param name="maxIterationsPerIncrement">Number of maximum iterations within a load increment</param>
 		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
 		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
-		private DisplacementControlAnalyzer(IModel model, ISolver solver, INonLinearProvider provider,
-			IReadOnlyDictionary<int, INonLinearSubdomainUpdater> subdomainUpdaters,
+		private DisplacementControlAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
+			INonLinearModelUpdater modelUpdater,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
-			: base(model, solver, provider, subdomainUpdaters, numIncrements, maxIterationsPerIncrement,
+			: base(algebraicModel, solver, provider, modelUpdater, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
-		{ }
+		{
+			this.model = model;
+		}
 
 		/// <summary>
 		/// Solves the nonlinear equations and calculates the displacements vector
@@ -49,7 +54,6 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 				double errorNorm = 0;
 				ClearIncrementalSolutionVector();
 				UpdateRhs(increment);
-				ScaleSubdomainConstraints(increment);
 
 				double firstError = 0;
 				int iteration = 0;
@@ -58,8 +62,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 					AddEquivalentNodalLoadsToRHS(increment, iteration);
 					solver.Solve();
 
-					Dictionary<int, IVector> internalRhsVectors = CalculateInternalRhs(increment, iteration);
-					errorNorm = UpdateResidualForcesAndNorm(increment, internalRhsVectors);
+					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
+					errorNorm = UpdateResidualForcesAndNorm(increment, internalRhsVector);
 
 					if (iteration == 0)
 					{
@@ -73,17 +77,13 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 					if (errorNorm < residualTolerance)
 					{
-						foreach (var subdomainLogPair in IncrementalLogs)
+						if (IncrementalLog != null)
 						{
-							int subdomainID = subdomainLogPair.Key;
-							TotalLoadsDisplacementsPerIncrementLog log = subdomainLogPair.Value;
-							log.LogTotalDataForIncrement(increment, iteration, errorNorm,
-								uPlusdu[subdomainID], internalRhsVectors[subdomainID]);
+							IncrementalLog.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu, internalRhsVector);
 						}
 						break;
 					}
 
-					SplitResidualForcesToSubdomains();
 					if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
 					{
 						provider.Reset();
@@ -101,10 +101,6 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected override void InitializeInternalVectors()
 		{
 			base.InitializeInternalVectors();
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				subdomainUpdaters[linearSystem.Subdomain.ID].ScaleConstraints(1 / (double)numIncrements);
-			}
 		}
 
 		private void AddEquivalentNodalLoadsToRHS(int iteration, int iteration1)
@@ -114,38 +110,16 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 				return;
 			}
 
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				int id = linearSystem.Subdomain.ID;
-
-				double scalingFactor = 1;
-				IVector equivalentNodalLoads = provider.DirichletLoadsAssembler.GetEquivalentNodalLoads(
-					linearSystem.Subdomain,
-					u[id], scalingFactor);
-				linearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
-
-				model.GlobalDofOrdering.AddVectorSubdomainToGlobal(linearSystem.Subdomain, linearSystem.RhsVector, globalRhs);
-			}
-		}
-
-		private void ScaleSubdomainConstraints(int currentIncrement)
-		{
-			if (currentIncrement == 0)
-			{
-				return;
-			}
-
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				double scalingFactor = 1;
-				subdomainUpdaters[linearSystem.Subdomain.ID].ScaleConstraints(scalingFactor);
-			}
+			//double scalingFactor = 1;
+			IGlobalVector equivalentNodalLoads = algebraicModel.CreateZeroVector();
+			algebraicModel.AddToGlobalVector(provider.EnumerateEquivalentNeumannBoundaryConditions, equivalentNodalLoads);
+			solver.LinearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
 		}
 
 		public class Builder : NonLinearAnalyzerBuilderBase
 		{
-			public Builder(IModel model, ISolver solver, INonLinearProvider provider, int numIncrements)
-				: base(model, solver, provider, numIncrements)
+			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements)
+				: base(model, algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;
@@ -154,7 +128,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 			public DisplacementControlAnalyzer Build()
 			{
-				return new DisplacementControlAnalyzer(model, solver, provider, SubdomainUpdaters,
+				return new DisplacementControlAnalyzer(model, algebraicModel, solver, provider, ModelUpdater,
 					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
 			}
 		}

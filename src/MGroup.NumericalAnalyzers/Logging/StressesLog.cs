@@ -1,22 +1,26 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using MGroup.LinearAlgebra.Vectors;
+
+using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Logging;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {
-    public class StressesLog : IAnalyzerLog
+	public class StressesLog : IAnalysisWorkflowLog
     {
-        private readonly IElement[] elements;
-        private readonly Dictionary<int, double[]> strains = new Dictionary<int, double[]>();
+        private readonly IElementType[] elements;
+		private readonly IVectorValueExtractor resultsExtractor;
+		private readonly Dictionary<int, double[]> strains = new Dictionary<int, double[]>();
         private readonly Dictionary<int, double[]> stresses = new Dictionary<int, double[]>();
 
-        public StressesLog(IElement[] elements)
+
+        public StressesLog(IElementType[] elements, IVectorValueExtractor resultsExtractor)
         {
             this.elements = elements;
+			this.resultsExtractor = resultsExtractor;
         }
 
         public Dictionary<int, double[]> Strains { get { return strains; } }
@@ -41,26 +45,25 @@ namespace MGroup.NumericalAnalyzers.Logging
 
         #region IResultStorage Members
 
-        public void StoreResults(DateTime startTime, DateTime endTime, IVectorView solutionVector)
+        public void StoreResults(DateTime startTime, DateTime endTime, IGlobalVector solutionVector)
         {
-            StartTime = startTime;
-            EndTime = endTime;
-            //double[] solution = ((Vector<double>)solutionVector).Data;
-            foreach (IElement e in elements)
-            {
-                double[] localVector = e.Subdomain.FreeDofOrdering.ExtractVectorElementFromSubdomain(e, solutionVector);
-                var strainStresses = e.ElementType.CalculateStresses(e, localVector, 
-                    new double[e.ElementType.GetElementDofTypes(e).SelectMany(x => x).Count()]);
-                strains[e.ID] = new double[strainStresses.Item1.Length];
-                stresses[e.ID] = new double[strainStresses.Item2.Length];
-                Array.Copy(strainStresses.Item1, strains[e.ID], strains[e.ID].Length);
-                Array.Copy(strainStresses.Item2, stresses[e.ID], stresses[e.ID].Length);
+			StartTime = startTime;
+			EndTime = endTime;
+			//double[] solution = ((Vector<double>)solutionVector).Data;
+			foreach (IElementType e in elements)
+			{
+				double[] localVector = resultsExtractor.ExtractElementVector(solutionVector, e);
+				var strainStresses = e.CalculateResponse(localVector);
+				strains[e.ID] = new double[strainStresses.Item1.Length];
+				stresses[e.ID] = new double[strainStresses.Item2.Length];
+				Array.Copy(strainStresses.Item1, strains[e.ID], strains[e.ID].Length);
+				Array.Copy(strainStresses.Item2, stresses[e.ID], stresses[e.ID].Length);
 
-                //for (int i = 0; i < stresses[e.ID].Length; i++)
-                //    Debug.Write(stresses[e.ID][i]);
-                //Debug.WriteLine("");
-            }
-        }
+				//for (int i = 0; i < stresses[e.ID].Length; i++)
+				//    Debug.Write(stresses[e.ID][i]);
+				//Debug.WriteLine("");
+			}
+		}
 
         #endregion
     }

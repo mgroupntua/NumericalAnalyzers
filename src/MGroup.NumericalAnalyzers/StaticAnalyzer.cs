@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
-using MGroup.MSolve.AnalysisWorkflow;
-using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.LinearAlgebra.Vectors;
+using MGroup.MSolve.AnalysisWorkflow;
+using MGroup.MSolve.AnalysisWorkflow.Logging;
+using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Logging;
+using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystems;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers
 {
@@ -15,9 +17,9 @@ namespace MGroup.NumericalAnalyzers
 	/// </summary>
 	public class StaticAnalyzer : INonLinearParentAnalyzer
 	{
-		private readonly IReadOnlyDictionary<int, ILinearSystem> linearSystems;
 		private readonly IModel model;
-		private readonly IStaticProvider provider;
+		private readonly IAlgebraicModel algebraicModel;
+		private readonly INonTransientAnalysisProvider provider;
 		private readonly ISolver solver;
 
 		/// <summary>
@@ -27,18 +29,18 @@ namespace MGroup.NumericalAnalyzers
 		/// <param name="solver">Instance of the solver that will solve the linear system of equations</param>
 		/// <param name="provider">Instance of the problem type to be solved</param> 
 		/// <param name="childAnalyzer">Instance of the child analyzer that defines whether the problem is linear or nonlinear</param>
-		public StaticAnalyzer(IModel model, ISolver solver, IStaticProvider provider,
+		public StaticAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonTransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer)
 		{
 			this.model = model;
-			this.linearSystems = solver.LinearSystems;
+			this.algebraicModel = algebraicModel;
 			this.solver = solver;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
 			this.ChildAnalyzer.ParentAnalyzer = this;
 		}
 
-		public Dictionary<int, IAnalyzerLog[]> Logs { get; } = new Dictionary<int, IAnalyzerLog[]>();
+		public IAnalysisWorkflowLog[] Logs { get; set; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
 
@@ -47,18 +49,12 @@ namespace MGroup.NumericalAnalyzers
 		/// </summary>
 		public void BuildMatrices()
 		{
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				linearSystem.Matrix = provider.CalculateMatrix(linearSystem.Subdomain);
-			}
+			provider.CalculateMatrix();
 		}
 
-		/// <summary>
-		/// Calculates other components of the right-hand-side vector
-		/// </summary>
-		public IVector GetOtherRhsComponents(ILinearSystem linearSystem, IVector currentSolution)
+		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
-			return linearSystem.CreateZeroVector();
+			return algebraicModel.CreateZeroVector();
 		}
 
 		/// <summary>
@@ -68,30 +64,18 @@ namespace MGroup.NumericalAnalyzers
 		{
 			if (isFirstAnalysis)
 			{
+				//provider.GetProblemDofTypes();
 				model.ConnectDataStructures();
-				solver.OrderDofs(false);
-				foreach (ILinearSystem linearSystem in linearSystems.Values)
-				{
-					linearSystem.Reset();
-					linearSystem.Subdomain.Forces = Vector.CreateZero(linearSystem.Size);
-				}
-			}
-			else
-			{
-				foreach (ILinearSystem linearSystem in linearSystems.Values)
-				{
-					linearSystem.Reset();
-					linearSystem.Subdomain.Forces = Vector.CreateZero(linearSystem.Size);
-				}
+				algebraicModel.OrderDofs();
 			}
 
 			BuildMatrices();
 
-			model.AssignLoads(solver.DistributeNodalLoads);
-			foreach (ILinearSystem linearSystem in linearSystems.Values)
-			{
-				linearSystem.RhsVector = linearSystem.Subdomain.Forces;
-			}
+			provider.AssignRhs();//AssignLoads(solver.DistributeNodalLoads);
+			//foreach (ILinearSystem linearSystem in solver.LinearSystems.Values)
+			//{
+			//	linearSystem.RhsVector = linearSystem.Subdomain.Forces;
+			//}
 
 			if (ChildAnalyzer == null)
 			{
