@@ -15,8 +15,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 {
 	/// <summary>
 	/// This class makes the appropriate arrangements for the solution of linear dynamic equations
-	/// according to implicit Newmark method
-	/// Authors: George Stavroulakis, George Soimiris
+	/// according to the Backward Differentiation Formula
+	/// Authors: Orestis Papas, Theofilos Christodoulou
 	/// </summary>
 	public class BDFDynamicAnalyzer : INonLinearParentAnalyzer
 	{
