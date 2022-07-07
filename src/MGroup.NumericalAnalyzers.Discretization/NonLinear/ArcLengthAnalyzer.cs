@@ -21,56 +21,53 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 	{
 		private int sign;
 		private int previousIterations;
-		private int increment;
-		private int iteration;
 		private IGlobalVector incrSolution;
 		private IGlobalVector resSolution;
 		private IGlobalVector curSolution;
 		private IGlobalVector prevIncrSolution;
 		private IGlobalVector polynomialSolution;
-		private IGlobalVector externalRhs;
-		private IGlobalVector internalRhs;
 		private IGlobalVector rhsResidual;
-		private IGlobalVector globalRhs; //TODO: This was originally readonly 
-		private double globalRhsNormInitial; //TODO: This can probably be a local variable.
+		private IGlobalVector globalRhs;
 		private double incrementalRhsNormInitial;
-		private double initialLoadFactor;
 		private double lambda;
 		private double dlambda;
-		private double dlambda1;
-		private double dlambda2;
 		private double firstError;
-		bool append = false;
 
-		//polynomial coefficients
+		// polynomial coefficients
 		private double a;
 		private double b;
 		private double c;
 
-		//parameters
-		public double shape = 0; // 0 for cylindrical, 1 for spherical, intermediate values (0-1) for elliptic
-		public double initialdlambda; //load increment at first step
-		public double deltaS; //constraint radius
-		public double Id = 4; //desired number of iterations (3-5)
-		public bool constS = true;
+		// parameters
+		private double shape = 0;
+		private double initialdlambda;
+		private double deltaS;
+		private double numOfIterations = 4;
+		private bool constConstraint = true;
 
 		/// <summary>
-		/// This class solves the linearized geoemtrically nonlinear system of equations according to Newton-Raphson's load control incremental-iterative method.
+		/// This class solves the linearized geometrically nonlinear system of equations according to the Arc Length incremental-iterative method.
 		/// </summary>
-		/// <param name="model">Instance of the model that will be solved</param>
+		/// <param name="algebraicModel">Instance of the algebraic model that will be solved</param>
 		/// <param name="solver">Instance of the solver that will solve the linear system of equations</param>
 		/// <param name="provider">Instance of the problem type to be solved</param>
 		/// <param name="numIncrements">Number of total load increments</param>
 		/// <param name="maxIterationsPerIncrement">Number of maximum iterations within a load increment</param>
 		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
 		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
+		/// <param name="shape">Option for the shape of the constraint - 0 for cylindrical, 1 for spherical, intermediate values for elliptic (default : shape = 0)</param>
+		/// <param name="constConstraint">Option for constant radius of the constraint (default : constConstraint = 'true')</param>
+		/// <param name="numOfIterations">(only usefull for constConstraint = false) Number of expected iterations within a load increment (default : numOfIterations = 4)</param>
 		private ArcLengthAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
 			INonLinearModelUpdater modelUpdater,
-			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
+			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance, double shape, bool constConstraint, int numOfIterations)
 			: base(algebraicModel, solver, provider, modelUpdater, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
-		{ }
-
+		{
+			this.shape = shape;
+			this.constConstraint = constConstraint;
+			this.numOfIterations = numOfIterations;
+		}
 
 		/// <summary>
 		/// Solves the nonlinear equations and calculates the displacements vector.
@@ -78,40 +75,40 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		public override void Solve()
 		{
 			InitializeLogs();
+			InitializeVectors();
 
 			DateTime start = DateTime.Now;
-			UpdateInternalVectors();//TODOMaria this divides the externally applied load by the number of increments and scatters it to all subdomains and stores it in the class subdomain dictionary and total external load vector
-			initialdlambda = 1d / numIncrements;
+			UpdateInternalVectors();
+			initialdlambda = 1d;
 			dlambda = initialdlambda;
 			lambda += dlambda;
-			for (increment = 0; increment < numIncrements; increment++)
+			for (int increment = 0; increment < numIncrements; increment++)
 			{
 				double errorNorm = 0;
-				ClearIncrementalSolutionVector();//TODOMaria this sets du to 0
+				ClearIncrementalSolutionVector();
 
+				int iteration = 0;
 				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
 				{
-					UpdateRhs(increment);//TODOMaria this copies the residuals stored in the class dictionary to the subdomains
+					UpdateRhs(increment);
 					solver.Solve();
-					UpdateSolutionsDictionary(incrSolution);
+					UpdateSolution(incrSolution);
 
-					UpdateRhsResidual(lambda);
-
-					UpdateRhs();
+					UpdateRhsWithResidual();
 					solver.Solve();
-					UpdateSolutionsDictionary(resSolution);
+					UpdateSolution(resSolution);
 
 					if (iteration == 0 && increment == 0)
 					{
-						deltaS = dlambda * Math.Sqrt((Math.Pow(shape, 2) * externalRhs.DotProduct(externalRhs)) + incrSolution.DotProduct(incrSolution));
+						deltaS = dlambda * Math.Sqrt((Math.Pow(shape, 2) * Math.Pow(lambda, 2) * rhs.DotProduct(rhs)) + incrSolution.DotProduct(incrSolution));
 						curSolution = incrSolution.Scale(dlambda);
 						UpdateSolution(increment, iteration, curSolution);
 					}
 					else if (iteration == 0 && increment != 0)
 					{
-						if (constS == false)
+						if (constConstraint == false)
 						{
-							deltaS = (double)deltaS * Id / previousIterations;
+							deltaS = (double)deltaS * numOfIterations / previousIterations;
 						}
 
 						if (prevIncrSolution.DotProduct(incrSolution) > 0)
@@ -123,7 +120,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 							sign = -1;
 						}
 
-						dlambda = sign * deltaS / Math.Sqrt((Math.Pow(shape, 2) * externalRhs.DotProduct(externalRhs)) + incrSolution.DotProduct(incrSolution));
+						dlambda = sign * deltaS / Math.Sqrt((Math.Pow(shape, 2) * Math.Pow(lambda, 2) * rhs.DotProduct(rhs)) + incrSolution.DotProduct(incrSolution));
 						lambda += dlambda;
 						curSolution = resSolution.Axpy(incrSolution, dlambda);
 						UpdateSolution(increment, iteration, curSolution);
@@ -164,26 +161,32 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 							lambda += dlambda;
 							curSolution = resSolution.Axpy(incrSolution, dlambda);
 						}
+						UpdateSolution(increment, iteration, curSolution);
 					}
-
-					UpdateSolution(increment, iteration, curSolution);
-					UpdateInternalRhs();
-					double residualNormCurrent = UpdateResidualForcesAndNorm(lambda);
+					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
+					double residualNormCurrent = UpdateResidualForcesAndNorm(internalRhsVector);
 					errorNorm = incrementalRhsNormInitial != 0 ? residualNormCurrent / incrementalRhsNormInitial : 0;// (rhsNorm*increment/increments) : 0;//TODOMaria this calculates the internal force vector and subtracts it from the external one (calculates the residual)
-
-					IncrementalDisplacementsLog?.StoreDisplacements(uPlusdu);
-					TotalDisplacementsPerIterationLog?.StoreDisplacements(uPlusdu);
 
 					if (iteration == 0)
 					{
 						firstError = errorNorm;
 					}
 
+					if (IncrementalDisplacementsLog != null)
+					{
+						IncrementalDisplacementsLog.StoreDisplacements(uPlusdu);
+					}
+
+					if (TotalDisplacementsPerIterationLog != null)
+					{
+						TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
+					}
+
 					if (errorNorm < residualTolerance)
 					{
 						if (IncrementalLog != null)
 						{
-							IncrementalLog.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu, internalRhs);
+							IncrementalLog.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu, internalRhsVector); //internalRhs
 						}
 						break;
 					}
@@ -193,6 +196,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						provider.Reset();
 						BuildMatrices();
 					}
+
 				}
 
 				Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
@@ -206,29 +210,23 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			StoreLogResults(start, end);
 		}
 
-		protected override void InitializeInternalVectors()
-		{
-			base.InitializeInternalVectors();
-		}
-
-		private void UpdateRhs()
+		private void UpdateRhsWithResidual()
 		{
 			solver.LinearSystem.RhsVector.CopyFrom(rhsResidual);
 		}
 
-		private void UpdateInternalRhs()
+		new private IGlobalVector CalculateInternalRhs(int increment, int iteration)
 		{
-			internalRhs.Clear();
-			var internalRHS = modelUpdater.CalculateResponseIntegralVector(uPlusdu);
-			provider.ProcessInternalRhs(uPlusdu, internalRHS);
+			IGlobalVector internalRhs = modelUpdater.CalculateResponseIntegralVector(uPlusdu);
+			provider.ProcessInternalRhs(uPlusdu, internalRhs);
 
 			if (parentAnalyzer != null)
 			{
-				var otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
-				internalRHS.AddIntoThis(otherRhsComponents);
+				IGlobalVector otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
+				internalRhs.AddIntoThis(otherRhsComponents);
 			}
 
-			internalRhs.Add(internalRHS);
+			return internalRhs;
 		}
 
 		private void UpdateSolution(int currentIncrement, int iteration, IGlobalVector solution)
@@ -250,40 +248,55 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			}
 		}
 
-		private double UpdateResidualForcesAndNorm(double lambda)
+		private double UpdateResidualForcesAndNorm(IGlobalVector internalRhsVector)
 		{
 			globalRhs.Clear();
 			solver.LinearSystem.RhsVector.Clear();
-			solver.LinearSystem.RhsVector.AddIntoThis(externalRhs.Scale(lambda));
-			solver.LinearSystem.RhsVector.SubtractIntoThis(internalRhs);
+			solver.LinearSystem.RhsVector.AddIntoThis(rhs.Scale(lambda));
+			solver.LinearSystem.RhsVector.SubtractIntoThis(internalRhsVector);
 			rhsResidual = solver.LinearSystem.RhsVector.Copy();
 
-			return provider.CalculateRhsNorm(globalRhs);
+			return provider.CalculateRhsNorm(solver.LinearSystem.RhsVector);
 		}
 
-		private void UpdateSolutionsDictionary(IGlobalVector solutionsDictionary)
+		private void UpdateSolution(IGlobalVector solution)
 		{
-			solutionsDictionary.Clear();
-			solutionsDictionary.Add(solver.LinearSystem.Solution.Copy());
+			solution.Clear();
+			solution.CopyFrom(solver.LinearSystem.Solution);
 		}
 
-		private void UpdateRhsResidual(double lambda)
+		private void InitializeVectors()
 		{
-			rhsResidual = externalRhs.Scale(lambda).Subtract(internalRhs);
+			incrSolution = algebraicModel.CreateZeroVector();
+			resSolution = algebraicModel.CreateZeroVector();
+			curSolution = algebraicModel.CreateZeroVector();
+			prevIncrSolution = algebraicModel.CreateZeroVector();
+			polynomialSolution = algebraicModel.CreateZeroVector();
+			rhsResidual = algebraicModel.CreateZeroVector();
+			rhsResidual.CopyFrom(rhs);
+			globalRhs = algebraicModel.CreateZeroVector();
+			incrementalRhsNormInitial = provider.CalculateRhsNorm(rhs);
 		}
 
 		public class Builder : NonLinearAnalyzerBuilderBase
 		{
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements)
+			private double shape;
+			private bool constConstraint;
+			private int numOfIterations;
+
+			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, bool constConstraint = true)
 				: base(model, algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;
 				ResidualTolerance = 1E-3;
+				this.shape = shape;
+				this.constConstraint = constConstraint;
+				this.numOfIterations = numOfIterations;
 			}
 
-			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, ModelUpdater, 
-					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
+			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, ModelUpdater,
+					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, shape, constConstraint, numOfIterations);
 		}
 	}
 }
