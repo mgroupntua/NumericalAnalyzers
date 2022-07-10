@@ -57,6 +57,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector rhs;
 		private IGlobalVector solution;
 		private IGlobalVector solutionOfPreviousStep;
+		private IGlobalVector zeroOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector firstOrderDerivativeOfSolution;
 		private IGlobalVector firstOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector firstOrderDerivativeComponentOfRhs;
@@ -187,14 +188,15 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		private void CalculateRhsImplicit()
 		{
-			secondOrderDerivativeOfSolutionForRhs = solution.LinearCombination(a0, firstOrderDerivativeOfSolution, a2);
-			secondOrderDerivativeOfSolutionForRhs.AxpyIntoThis(secondOrderDerivativeOfSolution, a3);
+			secondOrderDerivativeOfSolutionForRhs = solution.LinearCombination(a2, solutionOfPreviousStep, -a0);
 
-			firstOrderDerivativeOfSolutionForRhs = solution.LinearCombination(a1, firstOrderDerivativeOfSolution, a4);
-			firstOrderDerivativeOfSolutionForRhs.AxpyIntoThis(secondOrderDerivativeOfSolution, a5);
+			firstOrderDerivativeOfSolutionForRhs = solutionOfPreviousStep.Scale(a1);
+
+			zeroOrderDerivativeOfSolutionForRhs = solution.Scale(-1.0);
 
 			secondOrderDerivativeComponentOfRhs = provider.SecondOrderDerivativeMatrixVectorProduct(secondOrderDerivativeOfSolutionForRhs);
 			firstOrderDerivativeComponentOfRhs = provider.FirstOrderDerivativeMatrixVectorProduct(firstOrderDerivativeOfSolutionForRhs);
+			provider.
 
 			IGlobalVector rhsResult = secondOrderDerivativeComponentOfRhs.Add(firstOrderDerivativeComponentOfRhs);
 			bool addRhs = true;
