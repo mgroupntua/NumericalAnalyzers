@@ -58,6 +58,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector solution;
 		private IGlobalVector solutionOfPreviousStep;
 		private IGlobalVector zeroOrderDerivativeOfSolutionForRhs;
+		private IGlobalVector zeroOrderDerivativeComponentOfRhs;
 		private IGlobalVector firstOrderDerivativeOfSolution;
 		private IGlobalVector firstOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector firstOrderDerivativeComponentOfRhs;
@@ -196,9 +197,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 			secondOrderDerivativeComponentOfRhs = provider.SecondOrderDerivativeMatrixVectorProduct(secondOrderDerivativeOfSolutionForRhs);
 			firstOrderDerivativeComponentOfRhs = provider.FirstOrderDerivativeMatrixVectorProduct(firstOrderDerivativeOfSolutionForRhs);
-			provider.
+			zeroOrderDerivativeComponentOfRhs = provider.ZeroOrderDerivativeMatrixVectorProduct(zeroOrderDerivativeOfSolutionForRhs);
 
 			IGlobalVector rhsResult = secondOrderDerivativeComponentOfRhs.Add(firstOrderDerivativeComponentOfRhs);
+			rhsResult.AddIntoThis(zeroOrderDerivativeComponentOfRhs);
 			bool addRhs = true;
 			if (addRhs)
 			{
@@ -216,6 +218,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			solutionOfPreviousStep = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
 			secondOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
+			zeroOrderDerivativeOfSolutionForRhs = algebraicModel.CreateZeroVector();
+			zeroOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
 			rhs = algebraicModel.CreateZeroVector();
 
 			if (solver.LinearSystem.Solution != null)
@@ -262,10 +266,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void UpdateVelocityAndAcceleration()
 		{
+			IGlobalVector solutionBeforePreviousStep = solutionBeforePreviousStep.CopyFrom(solutionOfPreviousStep);
 			solutionOfPreviousStep.CopyFrom(solution);
 			solution.CopyFrom(solver.LinearSystem.Solution);
 
-			var secondOrderDerivativeOfSolutionOfPreviousStep = secondOrderDerivativeOfSolution.Copy();
+			
 
 			secondOrderDerivativeOfSolution = solution.Subtract(solutionOfPreviousStep);
 			secondOrderDerivativeOfSolution.LinearCombinationIntoThis(a0, firstOrderDerivativeOfSolution, -a2);
@@ -300,86 +305,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				this.totalTime = totalTime;
 			}
 
-			/// <summary>
-			///
-			/// </summary>
-			/// <param name="beta">
-			/// Used in the intepolation between the accelerations of the previous and current time step, in order to obtain the
-			/// current displacements. Also called alpha by Bathe.
-			/// </param>
-			/// <param name="gamma">
-			/// Used in the intepolation between the accelerations of the previous and current time step, in order to obtain the
-			/// current velocities. Also called delta by Bathe.
-			/// </param>
-			/// <param name="allowConditionallyStable">
-			/// If set to true, the user must make sure that the time step chosen is lower than the critical step size
-			/// corresponding to these particular <paramref name="beta"/>, <paramref name="gamma"/> parameters.
-			/// </param>
-			public void SetNewmarkParameters(double beta, double gamma, bool allowConditionallyStable = false)
-			{
-				if (!allowConditionallyStable)
-				{
-					if (gamma < 0.5)
-					{
-						throw new ArgumentException(
-						"Newmark delta has to be bigger than 0.5 to ensure unconditional stability.");
-					}
-
-					if (beta < 0.25)
-					{
-						throw new ArgumentException(
-						"Newmark alpha has to be bigger than 0.25 to ensure unconditional stability.");
-					}
-				}
-				if (gamma < 0.5)
-				{
-					throw new ArgumentException("Newmark delta has to be bigger than 0.5.");
-				}
-
-				double aLimit = 0.25 * Math.Pow(0.5 + gamma, 2);
-				if (beta < aLimit)
-				{
-					throw new ArgumentException($"Newmark alpha has to be bigger than {aLimit}.");
-				}
-
-				this.gamma = gamma;
-				this.beta = beta;
-			}
-
-			/// <summary>
-			/// Central diffences: gamma = 1/2, beta = 0. Newmark results in central diffences, a conditionally stable explicit
-			/// method. To ensure stability, the time step must be &lt;= the critical step size = 2 / w,  where w is the maximum
-			/// natural radian frequency. It would be more efficient to use an explicit dynamic analyzer.
-			/// </summary>
-			public void SetNewmarkParametersForCentralDifferences()
-			{
-				gamma = 0.5;
-				beta = 0.0;
-			}
-
-			/// <summary>
-			/// Constant acceleration (also called average acceleration or trapezoid rule): gamma = 1/2, beta = 1/4.
-			/// This is the most common scheme and is unconditionally stable. In this analyzer, it is used as the default.
-			/// </summary>
-			public void SetNewmarkParametersForConstantAcceleration()
-			{
-				gamma = 0.5;
-				beta = 0.25;
-			}
-
-			/// <summary>
-			/// Linear acceleration: gamma = 1/2, beta = 1/6. This is more accurate than the default constant acceleration,
-			/// but it conditionally stable. To ensure stability, the time step must be &lt;= the critical step size = 3.464 / w
-			/// = 0.551 * T, where w is the maximum natural radian frequency and T is the minimum natural period.
-			/// </summary>
-			public void SetNewmarkParametersForLinearAcceleration()
-			{
-				gamma = 0.5;
-				beta = 1.0 / 6.0;
-			}
-
-			public NewmarkDynamicAnalyzer Build()
-				=> new NewmarkDynamicAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, beta, gamma);
+			
 		}
 	}
 }
