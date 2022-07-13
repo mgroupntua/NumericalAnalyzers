@@ -57,6 +57,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector rhs;
 		private IGlobalVector solution;
 		private IGlobalVector solutionOfPreviousStep;
+		private IGlobalVector solutionBeforePreviousStep;
 		private IGlobalVector zeroOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector zeroOrderDerivativeComponentOfRhs;
 		private IGlobalVector firstOrderDerivativeOfSolution;
@@ -216,6 +217,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			firstOrderDerivativeOfSolutionForRhs = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
 			solutionOfPreviousStep = algebraicModel.CreateZeroVector();
+			solutionBeforePreviousStep = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
 			secondOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
 			zeroOrderDerivativeOfSolutionForRhs = algebraicModel.CreateZeroVector();
@@ -266,18 +268,14 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void UpdateVelocityAndAcceleration()
 		{
-			IGlobalVector solutionBeforePreviousStep = solutionBeforePreviousStep.CopyFrom(solutionOfPreviousStep);
+			solutionBeforePreviousStep.CopyFrom(solutionOfPreviousStep);
 			solutionOfPreviousStep.CopyFrom(solution);
 			solution.CopyFrom(solver.LinearSystem.Solution);
 
-			
+			secondOrderDerivativeOfSolution = solutionBeforePreviousStep.LinearCombination(a0, solutionOfPreviousStep, -2.0*a0);
+			secondOrderDerivativeOfSolution.AxpyIntoThis(solution, a0);
 
-			secondOrderDerivativeOfSolution = solution.Subtract(solutionOfPreviousStep);
-			secondOrderDerivativeOfSolution.LinearCombinationIntoThis(a0, firstOrderDerivativeOfSolution, -a2);
-			secondOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
-
-			firstOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
-			firstOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolution, a7);
+			firstOrderDerivativeOfSolution = solutionBeforePreviousStep.LinearCombination(-a1, solution, a1);
 		}
 
 		public class Builder
@@ -304,8 +302,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				this.timeStep = timeStep;
 				this.totalTime = totalTime;
 			}
-
-			
 		}
 	}
 }

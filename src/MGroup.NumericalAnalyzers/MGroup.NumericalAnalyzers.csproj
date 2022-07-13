@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Dynamic\BatheExplicitDynamicAnalyzer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="MGroup.LinearAlgebra" />
     <None Remove="MGroup.MSolve.Core" />
     <None Remove="Microsoft.SourceLink.GitHub" />
