@@ -23,4 +23,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Staggered\" />
+  </ItemGroup>
 </Project>
