@@ -10,11 +10,21 @@ using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.DataStructures;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
-	public class NewmarkDynamicAnalyzer : INonLinearParentAnalyzer
+	public class NewmarkDynamicAnalyzer : INonLinearParentAnalyzer, IStepwiseAnalyzer
 	{
+		private const string CURRENT_TIMESTEP = "Current timestep";
+		private const string PREVIOUS_SOLUTION = "Previous solution";
+		private const string FIRSTORDERSOLUTION = "First order derivative of solution";
+		private const string FIRSTORDERSOLUTIONRHS = "First order derivative of solution for RHS";
+		private const string FIRSTORDERCOMPONENTRHS = "First order derivative component for RHS";
+		private const string SECONDORDERSOLUTION = "Second order derivative of solution";
+		private const string SECONDORDERSOLUTIONRHS = "Second order derivative of solution for RHS";
+		private const string SECONDORDERCOMPONENTRHS = "Second order derivative component for RHS";
+
 		/// <summary>
 		/// This class makes the appropriate arrangements for the solution of linear dynamic equations
 		/// according to implicit Newmark method
@@ -63,6 +73,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector secondOrderDerivativeOfSolution;
 		private IGlobalVector secondOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector secondOrderDerivativeComponentOfRhs;
+		private int currentStep;
+		private DateTime start, end;
+		private GenericAnalyzerState currentState;
 
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
@@ -108,6 +121,26 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
+
+		public int CurrentStep { get => currentStep; }
+
+		public int Steps { get => (int)(totalTime / timeStep); }
+		GenericAnalyzerState IAnalyzer.CurrentState
+		{
+			get => currentState;
+			set
+			{
+				currentState = value;
+				currentStep = (int)currentState.StateValues[CURRENT_TIMESTEP];
+				solutionOfPreviousStep = currentState.StateVectors[PREVIOUS_SOLUTION];
+				firstOrderDerivativeOfSolution = currentState.StateVectors[FIRSTORDERSOLUTION];
+				firstOrderDerivativeOfSolutionForRhs = currentState.StateVectors[FIRSTORDERSOLUTIONRHS];
+				firstOrderDerivativeComponentOfRhs = currentState.StateVectors[FIRSTORDERCOMPONENTRHS];
+				secondOrderDerivativeOfSolution = currentState.StateVectors[SECONDORDERSOLUTION];
+				secondOrderDerivativeOfSolutionForRhs = currentState.StateVectors[SECONDORDERSOLUTIONRHS];
+				secondOrderDerivativeComponentOfRhs = currentState.StateVectors[SECONDORDERCOMPONENTRHS];
+			}
+		}
 
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
@@ -162,29 +195,31 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Initialize(isFirstAnalysis);
 		}
 
+		private void SolveCurrentTimestep()
+		{
+			Debug.WriteLine("Newmark step: {0}", currentStep);
+
+			AddExternalVelocitiesAndAccelerations(currentStep * timeStep);
+			IGlobalVector rhsVector = provider.GetRhs(currentStep * timeStep);
+			solver.LinearSystem.RhsVector = rhsVector; //TODOGoat: Perhaps the provider should set the rhs vector, like it does for the matrix. Either way the provider does this as a side effect
+
+			InitializeRhs();
+			CalculateRhsImplicit();
+
+			start = DateTime.Now;
+			ChildAnalyzer.Solve();
+			end = DateTime.Now;
+		}
+
 		/// <summary>
 		/// Solves the linear system of equations by calling the corresponding method of the specific solver attached during construction of the current instance
 		/// </summary>
 		public void Solve()
 		{
-			int numTimeSteps = (int)(totalTime / timeStep);
-			for (int i = 0; i < numTimeSteps; ++i)
+			for (int i = 0; i < Steps; ++i)
 			{
-				Debug.WriteLine("Newmark step: {0}", i);
-
-				AddExternalVelocitiesAndAccelerations(i * timeStep);
-				IGlobalVector rhsVector = provider.GetRhs(i * timeStep);
-				solver.LinearSystem.RhsVector = rhsVector; //TODOGoat: Perhaps the provider should set the rhs vector, like it does for the matrix. Either way the provider does this as a side effect
-
-				InitializeRhs();
-				CalculateRhsImplicit();
-
-				DateTime start = DateTime.Now;
-				ChildAnalyzer.Solve();
-				DateTime end = DateTime.Now;
-
-				UpdateVelocityAndAcceleration();
-				UpdateResultStorages(start, end);
+				SolveCurrentTimestep();
+				AdvanceStep();
 			}
 		}
 
@@ -277,6 +312,47 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 			firstOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
 			firstOrderDerivativeOfSolution.AxpyIntoThis(secondOrderDerivativeOfSolution, a7);
+		}
+		GenericAnalyzerState CreateState()
+		{
+			currentState = new GenericAnalyzerState(this,
+				new[]
+				{
+					(PREVIOUS_SOLUTION, solutionOfPreviousStep),
+					(FIRSTORDERSOLUTION, firstOrderDerivativeOfSolution),
+					(FIRSTORDERSOLUTIONRHS, firstOrderDerivativeOfSolutionForRhs),
+					(FIRSTORDERCOMPONENTRHS, firstOrderDerivativeComponentOfRhs),
+					(SECONDORDERSOLUTION, secondOrderDerivativeOfSolution),
+					(SECONDORDERSOLUTIONRHS, secondOrderDerivativeOfSolutionForRhs),
+					(SECONDORDERCOMPONENTRHS, secondOrderDerivativeComponentOfRhs),
+				},
+				new[]
+				{
+					(CURRENT_TIMESTEP, (double)currentStep),
+				});
+
+			return currentState;
+		}
+
+		IHaveState ICreateState.CreateState() => CreateState();
+		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
+
+		/// <summary>
+		/// Solves the linear system of equations of the current timestep
+		/// </summary>
+		void IStepwiseAnalyzer.Solve()
+		{
+			SolveCurrentTimestep();
+		}
+
+		public void AdvanceStep()
+		{
+			Debug.WriteLine("Advancing step");
+
+			UpdateVelocityAndAcceleration();
+			UpdateResultStorages(start, end);
+
+			currentStep++;
 		}
 
 		public class Builder

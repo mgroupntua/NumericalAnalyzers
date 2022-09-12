@@ -10,6 +10,7 @@ using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.DataStructures;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -18,7 +19,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 	/// according to the Backward Differentiation Formula
 	/// Authors: Orestis Papas, Theofilos Christodoulou
 	/// </summary>
-	public class BDFDynamicAnalyzer : INonLinearParentAnalyzer
+	public class BDFDynamicAnalyzer : INonLinearParentAnalyzer, IStepwiseAnalyzer
 	{
 		private readonly double timeStep;
 
@@ -36,6 +37,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector firstOrderDerivativeOfSolution;
 		private IGlobalVector firstOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector firstOrderDerivativeComponentOfRhs;
+		private DateTime start, end;
 
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
@@ -65,8 +67,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				throw new ArgumentException("Wrong BDF order. Must be in [1,5]");
 			}
-
-
 		}
 
 		public int BDFOrder { get; }
@@ -76,6 +76,21 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
+
+		public int CurrentStep { get => currentTimeStep; }
+
+		public int Steps { get => (int)(totalTime / timeStep); }
+
+		GenericAnalyzerState IAnalyzer.CurrentState
+		{
+			get => throw new NotImplementedException();
+			set => throw new NotImplementedException();
+		}
+
+		GenericAnalyzerState CreateState() => throw new NotImplementedException();
+
+		IHaveState ICreateState.CreateState() => CreateState();
+		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
 
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
@@ -162,35 +177,46 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Initialize(isFirstAnalysis);
 		}
 
+		private void SolveCurrentTimestep()
+		{
+			Debug.WriteLine("BDF step: {0}", currentTimeStep);
+
+			IGlobalVector rhsVector = provider.GetRhs(currentTimeStep * timeStep);
+			solver.LinearSystem.RhsVector = rhsVector;
+
+			if (currentTimeStep + 1 <= BDFOrder)
+			{
+				BuildMatrices();
+			}
+
+			InitializeRhs();
+			CalculateRhsImplicit(currentTimeStep * timeStep);
+
+			start = DateTime.Now;
+			ChildAnalyzer.Solve();
+			end = DateTime.Now;
+		}
+
 		/// <summary>
 		/// Solves the linear system of equations by calling the corresponding method of the specific solver attached during construction of the current instance
 		/// </summary>
 		public void Solve()
 		{
-			int numTimeSteps = (int)(totalTime / timeStep);
-			for (int i = 0; i < numTimeSteps; ++i)
+			for (int i = 0; i < Steps; ++i)
 			{
-				currentTimeStep = i;
-				Debug.WriteLine("BDF step: {0}", i);
-
-				IGlobalVector rhsVector = provider.GetRhs(i * timeStep);
-				solver.LinearSystem.RhsVector = rhsVector;
-
-				if (currentTimeStep + 1 <= BDFOrder)
-				{
-					BuildMatrices();
-				}
-
-				InitializeRhs();
-				CalculateRhsImplicit(i*timeStep);
-
-				DateTime start = DateTime.Now;
-				ChildAnalyzer.Solve();
-				DateTime end = DateTime.Now;
-
-				UpdateSolutionDerivatives();
-				UpdateResultStorages(start, end);
+				SolveCurrentTimestep();
+				AdvanceStep();
 			}
+		}
+
+		public void AdvanceStep()
+		{
+			Debug.WriteLine("Advancing step");
+
+			UpdateSolutionDerivatives();
+			UpdateResultStorages(start, end);
+
+			currentTimeStep++;
 		}
 
 		/// <summary>

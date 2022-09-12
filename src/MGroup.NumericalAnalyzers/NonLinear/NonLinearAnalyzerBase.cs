@@ -6,6 +6,7 @@ using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.DataStructures;
 
 namespace MGroup.NumericalAnalyzers.NonLinear
 {
@@ -61,6 +62,22 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		}
 
 		public IGlobalVector Responses { get; set; }
+
+		GenericAnalyzerState IAnalyzer.CurrentState
+		{
+			get => CreateState();
+			set
+			{
+			}
+		}
+
+		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
+		{
+			(String.Empty, (IGlobalVector)null)
+		});
+
+		IHaveState ICreateState.CreateState() => CreateState();
+		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
 
 		/// <summary>
 		/// Builds the tangent stiffness matrix of the system.

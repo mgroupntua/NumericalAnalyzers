@@ -5,6 +5,7 @@ using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
+using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.AlgebraicModel;
@@ -93,5 +94,21 @@ namespace MGroup.NumericalAnalyzers
 				l.StoreResults(start, end, solver.LinearSystem.Solution);
 			}
 		}
+
+		GenericAnalyzerState IAnalyzer.CurrentState
+		{
+			get => CreateState();
+			set
+			{
+			}
+		}
+
+		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
+		{
+			(String.Empty, (IGlobalVector)null)
+		});
+
+		IHaveState ICreateState.CreateState() => CreateState();
+		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
 	}
 }
