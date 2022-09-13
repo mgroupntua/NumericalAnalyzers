@@ -58,7 +58,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 			}
 		}
 
-		protected virtual void Solve(Action[] solveMethods)
+		protected virtual void Solve(Func<Action[]> solveMethods)
 		{
 			int staggeredStep = 0;
 			var solutionNorm = 0d;
@@ -75,7 +75,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 						currentSolutions[i] = solvers[i].LinearSystem.Solution.Copy();
 					}
 
-					solveMethods[i]();
+					solveMethods()[i]();
 				}
 
 				solutionNorm = 0;

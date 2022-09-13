@@ -22,7 +22,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 			currentSolutions = new IGlobalVector[analyzers.Length];
 		}
 
-		public void SolveCurrentStep() => base.Solve(analyzers.Select(x => x is IStepwiseAnalyzer ? (Action)((IStepwiseAnalyzer)x).Solve : (Action)x.Solve).ToArray());
+		public void SolveCurrentStep() => base.Solve(analyzers.Select(x => x is IStepwiseAnalyzer ? (Action)((IStepwiseAnalyzer)x).Solve : (Action)x.Solve).ToArray);
 
 		public override void Solve()
 		{

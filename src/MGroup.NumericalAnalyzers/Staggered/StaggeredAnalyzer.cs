@@ -22,6 +22,6 @@ namespace MGroup.NumericalAnalyzers.Staggered
 			currentSolutions = new IGlobalVector[analyzers.Length];
 		}
 
-		public override void Solve() => Solve(analyzers.Select(x => (Action)x.Solve).ToArray());
+		public override void Solve() => Solve(analyzers.Select(x => (Action)x.Solve).ToArray);
 	}
 }
