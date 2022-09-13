@@ -59,12 +59,12 @@ namespace MGroup.NumericalAnalyzers
 			//if (isFirstAnalysis)
 			//	provider.GetProblemDofTypes();
 			InitializeLogs();
+			AddEquivalentNodalLoadsToRHS();
 		}
 
 		public void Solve()
 		{
 			var start = DateTime.Now;
-			AddEquivalentNodalLoadsToRHS();
 			solver.Solve();
 			Responses = solver.LinearSystem.Solution.Copy();
 			var end = DateTime.Now;
