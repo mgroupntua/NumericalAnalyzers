@@ -132,13 +132,13 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				currentState = value;
 				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
-				solutionOfPreviousStep.CheckForCompatibility = false;
-				firstOrderDerivativeOfSolution.CheckForCompatibility = false;
-				firstOrderDerivativeOfSolutionForRhs.CheckForCompatibility = false;
-				firstOrderDerivativeComponentOfRhs.CheckForCompatibility = false;
-				secondOrderDerivativeOfSolution.CheckForCompatibility = false;
-				secondOrderDerivativeOfSolutionForRhs.CheckForCompatibility = false;
-				secondOrderDerivativeComponentOfRhs.CheckForCompatibility = false;
+				currentState.StateVectors[PREVIOUSSOLUTION].CheckForCompatibility = false;
+				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = false;
+				currentState.StateVectors[FIRSTORDERSOLUTIONRHS].CheckForCompatibility = false;
+				currentState.StateVectors[FIRSTORDERCOMPONENTRHS].CheckForCompatibility = false;
+				currentState.StateVectors[SECONDORDERSOLUTION].CheckForCompatibility = false;
+				currentState.StateVectors[SECONDORDERSOLUTIONRHS].CheckForCompatibility = false;
+				currentState.StateVectors[SECONDORDERCOMPONENTRHS].CheckForCompatibility = false;
 
 				solutionOfPreviousStep.CopyFrom(currentState.StateVectors[PREVIOUSSOLUTION]);
 				firstOrderDerivativeOfSolution.CopyFrom(currentState.StateVectors[FIRSTORDERSOLUTION]);
@@ -148,13 +148,13 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				secondOrderDerivativeOfSolutionForRhs.CopyFrom(currentState.StateVectors[SECONDORDERSOLUTIONRHS]);
 				secondOrderDerivativeComponentOfRhs.CopyFrom(currentState.StateVectors[SECONDORDERCOMPONENTRHS]);
 
-				solutionOfPreviousStep.CheckForCompatibility = true;
-				firstOrderDerivativeOfSolution.CheckForCompatibility = true;
-				firstOrderDerivativeOfSolutionForRhs.CheckForCompatibility = true;
-				firstOrderDerivativeComponentOfRhs.CheckForCompatibility = true;
-				secondOrderDerivativeOfSolution.CheckForCompatibility = true;
-				secondOrderDerivativeOfSolutionForRhs.CheckForCompatibility = true;
-				secondOrderDerivativeComponentOfRhs.CheckForCompatibility = true;
+				currentState.StateVectors[PREVIOUSSOLUTION].CheckForCompatibility = true;
+				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = true;
+				currentState.StateVectors[FIRSTORDERSOLUTIONRHS].CheckForCompatibility = true;
+				currentState.StateVectors[FIRSTORDERCOMPONENTRHS].CheckForCompatibility = true;
+				currentState.StateVectors[SECONDORDERSOLUTION].CheckForCompatibility = true;
+				currentState.StateVectors[SECONDORDERSOLUTIONRHS].CheckForCompatibility = true;
+				currentState.StateVectors[SECONDORDERCOMPONENTRHS].CheckForCompatibility = true;
 			}
 		}
 
