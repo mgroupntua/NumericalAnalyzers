@@ -223,6 +223,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			CalculateRhsImplicit();
 
 			start = DateTime.Now;
+			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
 			end = DateTime.Now;
 		}

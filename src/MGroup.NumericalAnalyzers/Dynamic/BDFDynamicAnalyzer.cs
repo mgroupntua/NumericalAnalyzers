@@ -193,6 +193,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			CalculateRhsImplicit(currentTimeStep * timeStep);
 
 			start = DateTime.Now;
+			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
 			end = DateTime.Now;
 		}
