@@ -89,7 +89,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="alpha">Instance of parameter "alpha" of the method that will be initialized</param>
 		/// <param name="delta">Instance of parameter "delta" of the method that will be initialized</param>
 		private NewmarkDynamicAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
-			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta)
+			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta, int currentStep)
 		{
 			this.model = model;
 			this.algebraicModel = algebraicModel;
@@ -100,6 +100,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			this.gamma = delta;
 			this.timeStep = timeStep;
 			this.totalTime = totalTime;
+			this.currentStep = currentStep;
 			this.ChildAnalyzer.ParentAnalyzer = this;
 
 			/// <summary>
@@ -383,15 +384,17 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly ITransientAnalysisProvider provider;
 			private double beta = 0.25;
 			private double gamma = 0.5;
+			private int currentStep = 0;
 
 			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
-				IChildAnalyzer childAnalyzer, double timeStep, double totalTime)
+				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep = 0)
 			{
 				this.model = model;
 				this.algebraicModel = algebraicModel;
 				this.solver = solver;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
+				this.currentStep = currentStep;
 
 				this.timeStep = timeStep;
 				this.totalTime = totalTime;
@@ -476,7 +479,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public NewmarkDynamicAnalyzer Build()
-				=> new NewmarkDynamicAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, beta, gamma);
+				=> new NewmarkDynamicAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, beta, gamma, currentStep);
 		}
 	}
 }

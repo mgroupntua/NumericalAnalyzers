@@ -51,13 +51,14 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="bdfOrder">Order of the scheme [1,5]</param>
 
 		private BDFDynamicAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
-			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int bdfOrder)
+			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int bdfOrder, int currentTimeStep)
 		{
 			this.model = model;
 			this.algebraicModel = algebraicModel;
 			this.solver = solver;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
+			this.currentTimeStep = currentTimeStep;
 			this.timeStep = timeStep;
 			this.totalTime = totalTime;
 			this.ChildAnalyzer.ParentAnalyzer = this;
@@ -389,10 +390,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly IAlgebraicModel algebraicModel;
 			private readonly ISolver solver;
 			private readonly ITransientAnalysisProvider provider;
-			private readonly int bdfOrder;
+			private readonly int bdfOrder, currentTimeStep;
 
 			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
-				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int bdfOrder)
+				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int bdfOrder, int currentTimeStep = 0)
 			{
 				this.model = model;
 				this.algebraicModel = algebraicModel;
@@ -400,13 +401,14 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
 
+				this.currentTimeStep = currentTimeStep;
 				this.timeStep = timeStep;
 				this.totalTime = totalTime;
 				this.bdfOrder = bdfOrder;
 			}
 
 			public BDFDynamicAnalyzer Build()
-				=> new BDFDynamicAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, bdfOrder);
+				=> new BDFDynamicAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, bdfOrder, currentTimeStep);
 		}
 	}
 }
