@@ -17,7 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MGroup.LinearAlgebra" Version="0.1.0-unstable.68" />
-    <PackageReference Include="MGroup.MSolve.Core" Version="0.2.0-unstable.43" />
+    <PackageReference Include="MGroup.MSolve.Core" Version="0.2.0-unstable.46" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
