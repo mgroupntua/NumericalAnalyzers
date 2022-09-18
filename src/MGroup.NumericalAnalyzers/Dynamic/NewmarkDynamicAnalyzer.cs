@@ -17,13 +17,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 	public class NewmarkDynamicAnalyzer : INonLinearParentAnalyzer, IStepwiseAnalyzer
 	{
 		private const string CURRENTTIMESTEP = "Current timestep";
+		private const string CURRENTSOLUTION = "Current solution";
 		private const string PREVIOUSSOLUTION = "Previous solution";
 		private const string FIRSTORDERSOLUTION = "First order derivative of solution";
-		private const string FIRSTORDERSOLUTIONRHS = "First order derivative of solution for RHS";
-		private const string FIRSTORDERCOMPONENTRHS = "First order derivative component for RHS";
 		private const string SECONDORDERSOLUTION = "Second order derivative of solution";
-		private const string SECONDORDERSOLUTIONRHS = "Second order derivative of solution for RHS";
-		private const string SECONDORDERCOMPONENTRHS = "Second order derivative component for RHS";
 
 		/// <summary>
 		/// This class makes the appropriate arrangements for the solution of linear dynamic equations
@@ -133,29 +130,20 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				currentState = value;
 				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
+				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
 				currentState.StateVectors[PREVIOUSSOLUTION].CheckForCompatibility = false;
 				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = false;
-				currentState.StateVectors[FIRSTORDERSOLUTIONRHS].CheckForCompatibility = false;
-				currentState.StateVectors[FIRSTORDERCOMPONENTRHS].CheckForCompatibility = false;
 				currentState.StateVectors[SECONDORDERSOLUTION].CheckForCompatibility = false;
-				currentState.StateVectors[SECONDORDERSOLUTIONRHS].CheckForCompatibility = false;
-				currentState.StateVectors[SECONDORDERCOMPONENTRHS].CheckForCompatibility = false;
 
+				solution.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
 				solutionOfPreviousStep.CopyFrom(currentState.StateVectors[PREVIOUSSOLUTION]);
 				firstOrderDerivativeOfSolution.CopyFrom(currentState.StateVectors[FIRSTORDERSOLUTION]);
-				firstOrderDerivativeOfSolutionForRhs.CopyFrom(currentState.StateVectors[FIRSTORDERSOLUTIONRHS]);
-				firstOrderDerivativeComponentOfRhs.CopyFrom(currentState.StateVectors[FIRSTORDERCOMPONENTRHS]);
 				secondOrderDerivativeOfSolution.CopyFrom(currentState.StateVectors[SECONDORDERSOLUTION]);
-				secondOrderDerivativeOfSolutionForRhs.CopyFrom(currentState.StateVectors[SECONDORDERSOLUTIONRHS]);
-				secondOrderDerivativeComponentOfRhs.CopyFrom(currentState.StateVectors[SECONDORDERCOMPONENTRHS]);
 
+				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
 				currentState.StateVectors[PREVIOUSSOLUTION].CheckForCompatibility = true;
 				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = true;
-				currentState.StateVectors[FIRSTORDERSOLUTIONRHS].CheckForCompatibility = true;
-				currentState.StateVectors[FIRSTORDERCOMPONENTRHS].CheckForCompatibility = true;
 				currentState.StateVectors[SECONDORDERSOLUTION].CheckForCompatibility = true;
-				currentState.StateVectors[SECONDORDERSOLUTIONRHS].CheckForCompatibility = true;
-				currentState.StateVectors[SECONDORDERCOMPONENTRHS].CheckForCompatibility = true;
 			}
 		}
 
@@ -336,13 +324,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			currentState = new GenericAnalyzerState(this,
 				new[]
 				{
+					(CURRENTSOLUTION, solution),
 					(PREVIOUSSOLUTION, solutionOfPreviousStep),
 					(FIRSTORDERSOLUTION, firstOrderDerivativeOfSolution),
-					(FIRSTORDERSOLUTIONRHS, firstOrderDerivativeOfSolutionForRhs),
-					(FIRSTORDERCOMPONENTRHS, firstOrderDerivativeComponentOfRhs),
 					(SECONDORDERSOLUTION, secondOrderDerivativeOfSolution),
-					(SECONDORDERSOLUTIONRHS, secondOrderDerivativeOfSolutionForRhs),
-					(SECONDORDERCOMPONENTRHS, secondOrderDerivativeComponentOfRhs),
 				},
 				new[]
 				{
