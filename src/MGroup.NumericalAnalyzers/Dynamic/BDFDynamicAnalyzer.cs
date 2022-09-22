@@ -163,7 +163,13 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		IHaveState ICreateState.CreateState() => CreateState();
 		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
-
+		/// <summary>
+		/// Solves the linear system of equations of the current timestep
+		/// </summary>
+		void IStepwiseAnalyzer.Solve()
+		{
+			SolveCurrentTimestep();
+		}
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
 		/// </summary>
@@ -251,7 +257,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveCurrentTimestep()
 		{
-			Debug.WriteLine("BDF step: {0}", currentTimeStep);
+			Console.WriteLine("BDF step: {0}", currentTimeStep);
 
 			IGlobalVector rhsVector = provider.GetRhs(currentTimeStep * timeStep);
 			solver.LinearSystem.RhsVector = rhsVector;
@@ -268,6 +274,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
 			end = DateTime.Now;
+			Console.WriteLine("BDF elapsed time: {0}", end-start);
 		}
 
 		/// <summary>

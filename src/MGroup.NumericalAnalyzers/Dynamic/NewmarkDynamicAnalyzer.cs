@@ -202,7 +202,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveCurrentTimestep()
 		{
-			Debug.WriteLine("Newmark step: {0}", currentStep);
+			Console.WriteLine("Newmark step: {0}", currentStep);
 
 			AddExternalVelocitiesAndAccelerations(currentStep * timeStep);
 			IGlobalVector rhsVector = provider.GetRhs(currentStep * timeStep);
@@ -215,6 +215,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
 			end = DateTime.Now;
+			Console.WriteLine("Newmark elapsed time: {0}", end - start);
 		}
 
 		/// <summary>
