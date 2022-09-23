@@ -66,6 +66,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 
 			do
 			{
+				Debug.WriteLine("\n\nStaggered step: {0}", staggeredStep);
 				previousSolutionNorm = solutionNorm;
 
 				for (int i = 0; i < solvers.Length; i++)

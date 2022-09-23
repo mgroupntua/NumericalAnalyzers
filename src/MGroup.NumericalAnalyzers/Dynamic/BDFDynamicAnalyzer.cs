@@ -21,6 +21,15 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 	/// </summary>
 	public class BDFDynamicAnalyzer : INonLinearParentAnalyzer, IStepwiseAnalyzer
 	{
+		private const string CURRENTTIMESTEP = "Current timestep";
+		private const string CURRENTSOLUTION = "Current solution";
+		private const string SOLUTION_N_1 = "Previous solution (n-1)";
+		private const string SOLUTION_N_2 = "Previous solution (n-2)";
+		private const string SOLUTION_N_3 = "Previous solution (n-3)";
+		private const string SOLUTION_N_4 = "Previous solution (n-4)";
+		private const string SOLUTION_N_5 = "Previous solution (n-5)";
+		private const string FIRSTORDERSOLUTION = "First order derivative of solution";
+		
 		private readonly double timeStep;
 
 		private readonly double totalTime;
@@ -38,6 +47,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector firstOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector firstOrderDerivativeComponentOfRhs;
 		private DateTime start, end;
+		private int currentStep;
+		private GenericAnalyzerState currentState;
 
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
@@ -84,15 +95,81 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
-			get => throw new NotImplementedException();
-			set => throw new NotImplementedException();
+			get => currentState;
+			set
+			{
+				currentState = value;
+				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
+				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
+				currentState.StateVectors[SOLUTION_N_1].CheckForCompatibility = false;
+				currentState.StateVectors[SOLUTION_N_2].CheckForCompatibility = false;
+				currentState.StateVectors[SOLUTION_N_3].CheckForCompatibility = false;
+				currentState.StateVectors[SOLUTION_N_4].CheckForCompatibility = false;
+				currentState.StateVectors[SOLUTION_N_5].CheckForCompatibility = false;
+				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = false;
+				
+				solution.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
+
+				solutionOfPreviousStep[0].CopyFrom(currentState.StateVectors[SOLUTION_N_1]);
+				if (solutionOfPreviousStep.Length > 1)
+				{
+					solutionOfPreviousStep[1].CopyFrom(currentState.StateVectors[SOLUTION_N_2]);
+				}
+				if (solutionOfPreviousStep.Length > 2)
+				{
+					solutionOfPreviousStep[2].CopyFrom(currentState.StateVectors[SOLUTION_N_3]);
+				}
+				if (solutionOfPreviousStep.Length > 3)
+				{
+					solutionOfPreviousStep[3].CopyFrom(currentState.StateVectors[SOLUTION_N_4]);
+				}
+				if (solutionOfPreviousStep.Length > 4)
+				{
+					solutionOfPreviousStep[4].CopyFrom(currentState.StateVectors[SOLUTION_N_5]);
+				}
+
+				firstOrderDerivativeOfSolution.CopyFrom(currentState.StateVectors[FIRSTORDERSOLUTION]);
+				
+				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
+				currentState.StateVectors[SOLUTION_N_1].CheckForCompatibility = true;
+				currentState.StateVectors[SOLUTION_N_2].CheckForCompatibility = true;
+				currentState.StateVectors[SOLUTION_N_3].CheckForCompatibility = true;
+				currentState.StateVectors[SOLUTION_N_4].CheckForCompatibility = true;
+				currentState.StateVectors[SOLUTION_N_5].CheckForCompatibility = true;
+				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = true;
+			}
 		}
 
-		GenericAnalyzerState CreateState() => throw new NotImplementedException();
+		GenericAnalyzerState CreateState()
+		{
+			currentState = new GenericAnalyzerState(this,
+				new[]
+				{
+					(CURRENTSOLUTION, solution),
+					(SOLUTION_N_1, solutionOfPreviousStep[0]),
+					(SOLUTION_N_2, solutionOfPreviousStep.Length > 1 ? solutionOfPreviousStep[1] : null),
+					(SOLUTION_N_3, solutionOfPreviousStep.Length > 2 ? solutionOfPreviousStep[2] : null),
+					(SOLUTION_N_4, solutionOfPreviousStep.Length > 3 ? solutionOfPreviousStep[3] : null),
+					(SOLUTION_N_5, solutionOfPreviousStep.Length > 4 ? solutionOfPreviousStep[4] : null),
+					(FIRSTORDERSOLUTION, firstOrderDerivativeOfSolution),
+				},
+				new[]
+				{
+					(CURRENTTIMESTEP, (double)currentStep),
+				});
+
+			return currentState;
+		}
 
 		IHaveState ICreateState.CreateState() => CreateState();
 		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
-
+		/// <summary>
+		/// Solves the linear system of equations of the current timestep
+		/// </summary>
+		void IStepwiseAnalyzer.Solve()
+		{
+			SolveCurrentTimestep();
+		}
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
 		/// </summary>
@@ -142,11 +219,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
-			//IGlobalVector result = provider.SecondOrderDerivativeMatrixVectorProduct(currentSolution);
-			//IGlobalVector temp = provider.FirstOrderDerivativeMatrixVectorProduct(currentSolution);
-			//result.LinearCombinationIntoThis(a0, temp, a1);
-			//return result;
-
 			return currentSolution;
 		}
 
@@ -197,6 +269,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
 			end = DateTime.Now;
+			Debug.WriteLine("BDF elapsed time: {0}", end-start);
 		}
 
 		/// <summary>
@@ -266,16 +339,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				solutionTerm.AddIntoThis(solutionOfPreviousStep[bdfTerm - 1].Scale(rhsFactors[bdfTerm]));
 			}
 
-
-			//TODO: maybe rename firstOrderDerivativeComponentOfRhs
 			firstOrderDerivativeComponentOfRhs = provider.FirstOrderDerivativeMatrixVectorProduct(solutionTerm);
 			firstOrderDerivativeComponentOfRhs.AddIntoThis(provider.FirstOrderDerivativeMatrixVectorProduct(provider.GetFirstOrderDerivativeVectorFromBoundaryConditions(time)));
 			firstOrderDerivativeComponentOfRhs.ScaleIntoThis(a2);
 
 			IGlobalVector rhsResult = firstOrderDerivativeComponentOfRhs;
 			rhsResult.AddIntoThis(rhs);
-
-			//TODO: stabilizing rhs?
 
 			solver.LinearSystem.RhsVector = rhsResult;
 		}
