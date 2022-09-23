@@ -219,11 +219,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
-			//IGlobalVector result = provider.SecondOrderDerivativeMatrixVectorProduct(currentSolution);
-			//IGlobalVector temp = provider.FirstOrderDerivativeMatrixVectorProduct(currentSolution);
-			//result.LinearCombinationIntoThis(a0, temp, a1);
-			//return result;
-
 			return currentSolution;
 		}
 
@@ -257,7 +252,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveCurrentTimestep()
 		{
-			Console.WriteLine("BDF step: {0}", currentTimeStep);
+			Debug.WriteLine("BDF step: {0}", currentTimeStep);
 
 			IGlobalVector rhsVector = provider.GetRhs(currentTimeStep * timeStep);
 			solver.LinearSystem.RhsVector = rhsVector;
@@ -274,7 +269,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
 			end = DateTime.Now;
-			Console.WriteLine("BDF elapsed time: {0}", end-start);
+			Debug.WriteLine("BDF elapsed time: {0}", end-start);
 		}
 
 		/// <summary>
@@ -344,16 +339,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				solutionTerm.AddIntoThis(solutionOfPreviousStep[bdfTerm - 1].Scale(rhsFactors[bdfTerm]));
 			}
 
-
-			//TODO: maybe rename firstOrderDerivativeComponentOfRhs
 			firstOrderDerivativeComponentOfRhs = provider.FirstOrderDerivativeMatrixVectorProduct(solutionTerm);
 			firstOrderDerivativeComponentOfRhs.AddIntoThis(provider.FirstOrderDerivativeMatrixVectorProduct(provider.GetFirstOrderDerivativeVectorFromBoundaryConditions(time)));
 			firstOrderDerivativeComponentOfRhs.ScaleIntoThis(a2);
 
 			IGlobalVector rhsResult = firstOrderDerivativeComponentOfRhs;
 			rhsResult.AddIntoThis(rhs);
-
-			//TODO: stabilizing rhs?
 
 			solver.LinearSystem.RhsVector = rhsResult;
 		}

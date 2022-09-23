@@ -202,11 +202,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveCurrentTimestep()
 		{
-			Console.WriteLine("Newmark step: {0}", currentStep);
+			Debug.WriteLine("Newmark step: {0}", currentStep);
 
 			AddExternalVelocitiesAndAccelerations(currentStep * timeStep);
 			IGlobalVector rhsVector = provider.GetRhs(currentStep * timeStep);
-			solver.LinearSystem.RhsVector = rhsVector; //TODOGoat: Perhaps the provider should set the rhs vector, like it does for the matrix. Either way the provider does this as a side effect
+			solver.LinearSystem.RhsVector = rhsVector;
 
 			InitializeRhs();
 			CalculateRhsImplicit();
@@ -215,7 +215,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
 			end = DateTime.Now;
-			Console.WriteLine("Newmark elapsed time: {0}", end - start);
+			Debug.WriteLine("Newmark elapsed time: {0}", end - start);
 		}
 
 		/// <summary>
