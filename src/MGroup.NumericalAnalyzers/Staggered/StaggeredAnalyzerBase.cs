@@ -66,7 +66,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 
 			do
 			{
-				Console.WriteLine("\n\nStaggered step: {0}", staggeredStep);
+				Debug.WriteLine("\n\nStaggered step: {0}", staggeredStep);
 				previousSolutionNorm = solutionNorm;
 
 				for (int i = 0; i < solvers.Length; i++)
@@ -86,7 +86,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 				}
 
 				error = solutionNorm != 0 ? Math.Abs(solutionNorm - previousSolutionNorm) / solutionNorm : 0;
-				Console.WriteLine("Staggered step: {0} - error {1}", staggeredStep, error);
+				Debug.WriteLine("Staggered step: {0} - error {1}", staggeredStep, error);
 				staggeredStep++;
 
 				if (staggeredStep < maxStaggeredSteps && error > tolerance)
