@@ -8,6 +8,7 @@ using MGroup.MSolve.Discretization.Providers;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using System.Linq;
+using MGroup.MSolve.DataStructures;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
@@ -30,11 +31,11 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		//	this.subdomain.ClearMaterialStresses();
 		//}
 
-		public void UpdateState()
+		public void UpdateState(IHaveState externalState)
 		{
 			algebraicModel.DoPerElement<IElementType>(element =>
 			{
-				element.SaveConstitutiveLawState();
+				element.SaveConstitutiveLawState(externalState);
 			});
 		}
 

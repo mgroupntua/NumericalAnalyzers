@@ -172,7 +172,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		protected void SaveMaterialStateAndUpdateSolution()
 		{
-			modelUpdater.UpdateState();
+			ParentAnalyzer.CreateState();
+			modelUpdater.UpdateState(ParentAnalyzer.CurrentState);
 			u.AddIntoThis(du);
 		}
 

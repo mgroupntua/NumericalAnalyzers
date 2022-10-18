@@ -11,6 +11,7 @@ using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.Constitutive;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -21,6 +22,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 	/// </summary>
 	public class BDFDynamicAnalyzer : INonLinearParentAnalyzer, IStepwiseAnalyzer
 	{
+		private const string TIME = TransientLiterals.TIME;
 		private const string CURRENTTIMESTEP = "Current timestep";
 		private const string CURRENTSOLUTION = "Current solution";
 		private const string SOLUTION_N_1 = "Previous solution (n-1)";
@@ -155,6 +157,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				},
 				new[]
 				{
+					(TIME, (double)currentStep * (double) timeStep),
 					(CURRENTTIMESTEP, (double)currentStep),
 				});
 

@@ -1,6 +1,7 @@
 using System.Linq;
 
 using MGroup.MSolve.AnalysisWorkflow;
+using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Discretization.BoundaryConditions;
 using MGroup.MSolve.Discretization.Providers;
@@ -39,11 +40,11 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			return internalRhs;
 		}
 
-		public void UpdateState()
+		public void UpdateState(IHaveState externalState)
 		{
 			algebraicModel.DoPerElement<IElementType>(element =>
 			{
-				element.SaveConstitutiveLawState();
+				element.SaveConstitutiveLawState(externalState);
 			});
 		}
 	}

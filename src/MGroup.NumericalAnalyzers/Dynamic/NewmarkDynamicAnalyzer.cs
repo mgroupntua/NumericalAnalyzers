@@ -11,11 +11,13 @@ using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.Constitutive;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
 	public class NewmarkDynamicAnalyzer : INonLinearParentAnalyzer, IStepwiseAnalyzer
 	{
+		private const string TIME = TransientLiterals.TIME;
 		private const string CURRENTTIMESTEP = "Current timestep";
 		private const string CURRENTSOLUTION = "Current solution";
 		private const string PREVIOUSSOLUTION = "Previous solution";
@@ -129,6 +131,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			set
 			{
 				currentState = value;
+				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
 				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
 				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
 				currentState.StateVectors[PREVIOUSSOLUTION].CheckForCompatibility = false;
@@ -332,6 +335,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				},
 				new[]
 				{
+					(TIME, (double)currentStep * (double) timeStep),
 					(CURRENTTIMESTEP, (double)currentStep),
 				});
 
