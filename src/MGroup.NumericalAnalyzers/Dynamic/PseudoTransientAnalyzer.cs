@@ -107,11 +107,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <summary>
 		/// Calculates inertia forces and damping forces.
 		/// </summary>
-		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
-		{
-			IGlobalVector result = provider.SecondOrderDerivativeMatrixVectorProduct(currentSolution);
-			return result;
-		}
+		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution) => algebraicModel.CreateZeroVector();
 
 		/// <summary>
 		/// Initializes the models, the solvers, child analyzers, builds the matrices, assigns loads and initializes right-hand-side vectors.
