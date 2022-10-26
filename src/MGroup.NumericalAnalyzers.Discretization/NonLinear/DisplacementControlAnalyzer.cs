@@ -98,11 +98,6 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			StoreLogResults(start, end);
 		}
 
-		protected override void InitializeInternalVectors()
-		{
-			base.InitializeInternalVectors();
-		}
-
 		private void AddEquivalentNodalLoadsToRHS(int iteration, int iteration1)
 		{
 			if (iteration != 0)

@@ -254,6 +254,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				rhsResult.AddIntoThis(rhs);
 			}
+
 			solver.LinearSystem.RhsVector = rhsResult;
 		}
 

@@ -114,9 +114,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		/// </summary>
 		public void Initialize(bool isFirstAnalysis)
 		{
-			//if (isFirstAnalysis)
-			//	provider.GetProblemDofTypes();
-			InitializeInternalVectors();
+			InitializeInternalVectors(isFirstAnalysis);
 		}
 
 		protected IGlobalVector CalculateInternalRhs(int currentIncrement, int iteration)
@@ -136,6 +134,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 				uPlusdu.AddIntoThis(u);
 				uPlusdu.AddIntoThis(du);
 			}
+
 			IGlobalVector internalRhs = modelUpdater.CalculateResponseIntegralVector(uPlusdu);
 			provider.ProcessInternalRhs(uPlusdu, internalRhs);
 
@@ -155,6 +154,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			{
 				solver.LinearSystem.RhsVector.AddIntoThis(rhs);
 			}
+
 			solver.LinearSystem.RhsVector.SubtractIntoThis(internalRhs);
 			return provider.CalculateRhsNorm(solver.LinearSystem.RhsVector);
 		}
@@ -164,13 +164,43 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			du.Clear();
 		}
 
-		protected virtual void InitializeInternalVectors()
+		protected virtual void InitializeInternalVectors(bool isFirstAnalysis)
 		{
 			rhs = solver.LinearSystem.RhsVector.Copy();
 			rhs.ScaleIntoThis(1 / (double)numIncrements);
-			u = algebraicModel.CreateZeroVector();
-			du = algebraicModel.CreateZeroVector();
-			uPlusdu = algebraicModel.CreateZeroVector();
+			if (u == null)
+			{
+				u = algebraicModel.CreateZeroVector();
+			}
+			else
+			{
+				if (isFirstAnalysis)
+				{
+					u.Clear();
+				}
+			}
+
+			if (du == null)
+			{
+				du = algebraicModel.CreateZeroVector();
+			}
+			else
+			{
+				du.Clear();
+			}
+
+			if (uPlusdu == null)
+			{
+				uPlusdu = algebraicModel.CreateZeroVector();
+			}
+			else
+			{
+				uPlusdu.Clear();
+			}
+
+			//u = algebraicModel.CreateZeroVector();
+			//du = algebraicModel.CreateZeroVector();
+			//uPlusdu = algebraicModel.CreateZeroVector();
 			globalRhsNormInitial = provider.CalculateRhsNorm(solver.LinearSystem.RhsVector);
 		}
 
@@ -180,6 +210,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			{
 				Logs = LogFactory.CreateLogs();
 			}
+
 			if (IncrementalLog != null)
 			{
 				IncrementalLog.Initialize();
