@@ -197,9 +197,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		GenericAnalyzerState CreateState()
 		{
-			currentState = new GenericAnalyzerState(this,
-				new(string, IGlobalVector)[]
+			currentState = new GenericAnalyzerState(this, new[]
 				{
+					(String.Empty, (IGlobalVector)null)
 				},
 				new[]
 				{

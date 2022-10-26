@@ -16,6 +16,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 	/// </summary>
 	public abstract class NonLinearAnalyzerBase : IChildAnalyzer
 	{
+		private const string CURRENTSOLUTION = "Current solution";
+
 		protected readonly int maxIterationsPerIncrement;
 		protected readonly IAlgebraicModel algebraicModel;
 		protected readonly int numIncrements;
@@ -30,6 +32,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected IGlobalVector uPlusdu;
 		protected double globalRhsNormInitial;
 		protected INonLinearParentAnalyzer parentAnalyzer = null;
+		private GenericAnalyzerState currentState;
 
 		public NonLinearAnalyzerBase(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
 			INonLinearModelUpdater modelUpdater,
@@ -67,16 +70,27 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
-			get => CreateState();
+			get => currentState;
 			set
 			{
+				currentState = value;
+				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
+
+				u.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
+
+				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
 			}
 		}
 
-		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
+		GenericAnalyzerState CreateState()
 		{
-			(String.Empty, (IGlobalVector)null)
-		});
+			currentState = new GenericAnalyzerState(this, new[]
+			{
+				(CURRENTSOLUTION, u),
+			});
+
+			return currentState;
+		}
 
 		IHaveState ICreateState.CreateState() => CreateState();
 		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
