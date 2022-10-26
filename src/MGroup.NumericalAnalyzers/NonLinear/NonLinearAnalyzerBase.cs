@@ -47,6 +47,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		public LinearAnalyzerLogFactory LogFactory { get; set; }
 
+		public IGlobalVector CurrentAnalysisResult { get => u; }
+
 		public IAnalysisWorkflowLog[] Logs { get; set; } = new IAnalysisWorkflowLog[0];
 
 		public TotalDisplacementsPerIterationLog TotalDisplacementsPerIterationLog { get; set; }

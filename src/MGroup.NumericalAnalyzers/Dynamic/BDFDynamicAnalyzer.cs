@@ -87,6 +87,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		public IAnalysisWorkflowLog[] Logs => null;
 
+		public IGlobalVector CurrentAnalysisResult { get => solution; }
+
 		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
@@ -336,7 +338,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				default: throw new ArgumentException("Wrong BDF Order");
 			}
 
-			var solutionTerm = solver.LinearSystem.Solution.Scale(rhsFactors[0]);
+			var solutionTerm = ChildAnalyzer.CurrentAnalysisResult.Scale(rhsFactors[0]);
+			//var solutionTerm = solver.LinearSystem.Solution.Scale(rhsFactors[0]);
 			for (int bdfTerm = 1; bdfTerm < bdfOrderInternal; bdfTerm++)
 			{
 				solutionTerm.AddIntoThis(solutionOfPreviousStep[bdfTerm - 1].Scale(rhsFactors[bdfTerm]));
@@ -359,14 +362,22 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			firstOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
 			rhs = algebraicModel.CreateZeroVector();
 
-			if (solver.LinearSystem.Solution != null)
+			if (ChildAnalyzer?.CurrentAnalysisResult != null)
 			{
-				solution = solver.LinearSystem.Solution.Copy();
+				solution = ChildAnalyzer.CurrentAnalysisResult.Copy();
 			}
 			else
 			{
 				solution = algebraicModel.CreateZeroVector();
 			}
+			//if (solver.LinearSystem.Solution != null)
+			//{
+			//	solution = solver.LinearSystem.Solution.Copy();
+			//}
+			//else
+			//{
+			//	solution = algebraicModel.CreateZeroVector();
+			//}
 
 			solutionOfPreviousStep = new IGlobalVector[BDFOrder];
 			for (int i = 0; i < BDFOrder; i++)
@@ -399,7 +410,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			int bdfOrderInternal = Math.Min(currentTimeStep + 1, BDFOrder);
 
-			double[] firstOrderDerivativeFactors = new double[bdfOrderInternal+1];
+			double[] firstOrderDerivativeFactors = new double[bdfOrderInternal + 1];
 			switch (bdfOrderInternal)
 			{
 				case 1:
@@ -441,7 +452,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				firstOrderDerivativeOfSolution.AddIntoThis(solutionOfPreviousStep[i - 1].Scale(firstOrderDerivativeFactors[i]));
 			}
 
-			firstOrderDerivativeOfSolution.AddIntoThis(solver.LinearSystem.Solution.Scale(firstOrderDerivativeFactors[0]));
+			//firstOrderDerivativeOfSolution.AddIntoThis(solver.LinearSystem.Solution.Scale(firstOrderDerivativeFactors[0]));
+			firstOrderDerivativeOfSolution.AddIntoThis(ChildAnalyzer.CurrentAnalysisResult.Scale(firstOrderDerivativeFactors[0]));
 
 			for (int jj = Math.Min(currentTimeStep, BDFOrder - 1); jj >= 1; jj--)
 			{
@@ -449,8 +461,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			solutionOfPreviousStep[0].CopyFrom(solution);
-			solution.CopyFrom(solver.LinearSystem.Solution);
-
+			solution.CopyFrom(ChildAnalyzer.CurrentAnalysisResult);
 		}
 
 		public class Builder

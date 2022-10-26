@@ -23,6 +23,8 @@ namespace MGroup.NumericalAnalyzers.Staggered
 
 		public IAnalysisWorkflowLog[] Logs { get; set; }
 
+		public IGlobalVector CurrentAnalysisResult { get => throw new NotSupportedException("Staggered analyzer has more than one nested analyzers. Use CurrentAnalysisResult of each individual nested analyzer"); }
+
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
 			get => CreateState();

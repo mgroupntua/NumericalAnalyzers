@@ -43,7 +43,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private readonly ISolver solver;
 		private readonly ITransientAnalysisProvider provider;
 		private IGlobalVector rhs;
-		private IGlobalVector solution;
 		private int currentStep;
 		private DateTime start, end;
 		private GenericAnalyzerState currentState;
@@ -73,6 +72,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		public IAnalysisWorkflowLog[] Logs => null;
 
+		public IGlobalVector CurrentAnalysisResult { get => solver?.LinearSystem?.Solution; }
+
 		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
@@ -88,11 +89,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				currentState = value;
 				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
-				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
 
-				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
-				solution.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
-				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
+				//currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
+				//solution.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
+				//currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
 			}
 		}
 
@@ -176,15 +176,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private void InitializeInternalVectors()
 		{
 			rhs = algebraicModel.CreateZeroVector();
-
-			if (solver.LinearSystem.Solution != null)
-			{
-				solution = solver.LinearSystem.Solution.Copy();
-			}
-			else
-			{
-				solution = algebraicModel.CreateZeroVector();
-			}
 		}
 
 		private void InitializeRhs()
@@ -207,9 +198,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		GenericAnalyzerState CreateState()
 		{
 			currentState = new GenericAnalyzerState(this,
-				new[]
+				new(string, IGlobalVector)[]
 				{
-					(CURRENTSOLUTION, solution),
 				},
 				new[]
 				{

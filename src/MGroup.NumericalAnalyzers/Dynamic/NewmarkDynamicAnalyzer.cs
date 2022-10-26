@@ -118,6 +118,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		public IAnalysisWorkflowLog[] Logs => null;
 
+		public IGlobalVector CurrentAnalysisResult { get => solution; }
+
 		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
@@ -131,7 +133,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			set
 			{
 				currentState = value;
-				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
 				currentStep = (int)currentState.StateValues[CURRENTTIMESTEP];
 				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
 				currentState.StateVectors[PREVIOUSSOLUTION].CheckForCompatibility = false;
@@ -267,14 +268,22 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			secondOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
 			rhs = algebraicModel.CreateZeroVector();
 
-			if (solver.LinearSystem.Solution != null)
+			if (ChildAnalyzer?.CurrentAnalysisResult != null)
 			{
-				solution = solver.LinearSystem.Solution.Copy();
+				solution = ChildAnalyzer.CurrentAnalysisResult.Copy();
 			}
 			else
 			{
 				solution = algebraicModel.CreateZeroVector();
 			}
+			//if (solver.LinearSystem.Solution != null)
+			//{
+			//	solution = solver.LinearSystem.Solution.Copy();
+			//}
+			//else
+			//{
+			//	solution = algebraicModel.CreateZeroVector();
+			//}
 		}
 
 		private void InitializeRhs()
@@ -312,7 +321,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private void UpdateVelocityAndAcceleration()
 		{
 			solutionOfPreviousStep.CopyFrom(solution);
-			solution.CopyFrom(solver.LinearSystem.Solution);
+			solution.CopyFrom(ChildAnalyzer.CurrentAnalysisResult);
 
 			var secondOrderDerivativeOfSolutionOfPreviousStep = secondOrderDerivativeOfSolution.Copy();
 

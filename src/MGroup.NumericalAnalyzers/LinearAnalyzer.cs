@@ -38,6 +38,8 @@ namespace MGroup.NumericalAnalyzers
 
 		public ILogFactory LogFactory { get; set; }
 
+		public IGlobalVector CurrentAnalysisResult { get => solver?.LinearSystem?.Solution; }
+
 		public IAnalysisWorkflowLog[] Logs { get; set; } = new IAnalysisWorkflowLog[0];
 
 		public IParentAnalyzer ParentAnalyzer { get; set; }

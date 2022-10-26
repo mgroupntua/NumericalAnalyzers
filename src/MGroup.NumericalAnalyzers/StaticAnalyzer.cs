@@ -40,6 +40,8 @@ namespace MGroup.NumericalAnalyzers
 
 		public IAnalysisWorkflowLog[] Logs { get; set; }
 
+		public IGlobalVector CurrentAnalysisResult { get => ChildAnalyzer?.CurrentAnalysisResult; }
+
 		public IChildAnalyzer ChildAnalyzer { get; }
 
 		GenericAnalyzerState IAnalyzer.CurrentState
