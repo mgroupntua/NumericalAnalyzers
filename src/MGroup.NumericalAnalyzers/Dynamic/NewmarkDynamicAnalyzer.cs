@@ -61,7 +61,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private readonly double a7;
 		private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
-		private readonly ISolver solver;
 		private readonly ITransientAnalysisProvider provider;
 		private IGlobalVector rhs;
 		private IGlobalVector solution;
@@ -80,19 +79,17 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
 		/// </summary>
 		/// <param name="model">Instance of the model to be solved</param>
-		/// <param name="solver">Instance of the solver that will handle the solution of the system of equations</param>
 		/// <param name="provider">Instance of the problem type to be solver</param>
 		/// <param name="childAnalyzer">Instance of the child analyzer that will handle the solution of the system of equations</param>
 		/// <param name="timeStep">Instance of the time step of the method that will be initialized</param>
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized</param>
 		/// <param name="alpha">Instance of parameter "alpha" of the method that will be initialized</param>
 		/// <param name="delta">Instance of parameter "delta" of the method that will be initialized</param>
-		private NewmarkDynamicAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
+		private NewmarkDynamicAnalyzer(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta, int currentStep)
 		{
 			this.model = model;
 			this.algebraicModel = algebraicModel;
-			this.solver = solver;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
 			this.beta = alpha;
@@ -380,18 +377,16 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly IChildAnalyzer childAnalyzer;
 			private readonly IModel model;
 			private readonly IAlgebraicModel algebraicModel;
-			private readonly ISolver solver;
 			private readonly ITransientAnalysisProvider provider;
 			private double beta = 0.25;
 			private double gamma = 0.5;
 			private int currentStep = 0;
 
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
+			public Builder(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep = 0)
 			{
 				this.model = model;
 				this.algebraicModel = algebraicModel;
-				this.solver = solver;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
 				this.currentStep = currentStep;
@@ -479,7 +474,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public NewmarkDynamicAnalyzer Build()
-				=> new NewmarkDynamicAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, beta, gamma, currentStep);
+				=> new NewmarkDynamicAnalyzer(model, algebraicModel, provider, childAnalyzer, timeStep, totalTime, beta, gamma, currentStep);
 		}
 	}
 }

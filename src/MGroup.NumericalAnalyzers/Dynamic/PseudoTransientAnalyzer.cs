@@ -40,7 +40,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private readonly double totalTime;
 		private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
-		private readonly ISolver solver;
 		private readonly ITransientAnalysisProvider provider;
 		private IGlobalVector rhs;
 		private int currentStep;
@@ -51,17 +50,15 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem.
 		/// </summary>
 		/// <param name="model">Instance of the model to be solved.</param>
-		/// <param name="solver">Instance of the solver that will handle the solution of the system of equations.</param>
 		/// <param name="provider">Instance of the problem type to be solver.</param>
 		/// <param name="childAnalyzer">Instance of the child analyzer that will handle the solution of the system of equations.</param>
 		/// <param name="timeStep">Instance of the time step of the method that will be initialized.</param>
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized.</param>
-		private PseudoTransientAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
+		private PseudoTransientAnalyzer(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep)
 		{
 			this.model = model;
 			this.algebraicModel = algebraicModel;
-			this.solver = solver;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
 			this.timeStep = timeStep;
@@ -72,7 +69,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		public IAnalysisWorkflowLog[] Logs => null;
 
-		public IGlobalVector CurrentAnalysisResult { get => solver?.LinearSystem?.Solution; }
+		public IGlobalVector CurrentAnalysisResult { get => ChildAnalyzer.CurrentAnalysisResult.Copy(); }
 
 		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
@@ -235,16 +232,14 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly IChildAnalyzer childAnalyzer;
 			private readonly IModel model;
 			private readonly IAlgebraicModel algebraicModel;
-			private readonly ISolver solver;
 			private readonly ITransientAnalysisProvider provider;
 			private int currentStep = 0;
 
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, ITransientAnalysisProvider provider,
+			public Builder(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep = 0)
 			{
 				this.model = model;
 				this.algebraicModel = algebraicModel;
-				this.solver = solver;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
 				this.currentStep = currentStep;
@@ -254,7 +249,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public PseudoTransientAnalyzer Build()
-				=> new PseudoTransientAnalyzer(model, algebraicModel, solver, provider, childAnalyzer, timeStep, totalTime, currentStep);
+				=> new PseudoTransientAnalyzer(model, algebraicModel, provider, childAnalyzer, timeStep, totalTime, currentStep);
 		}
 	}
 }
