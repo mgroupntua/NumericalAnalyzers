@@ -141,7 +141,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			Debug.WriteLine("Pseudo-Transient Analyzer step: {0}", currentStep);
 
 			IGlobalVector rhsVector = provider.GetRhs(currentStep * timeStep);
-			solver.LinearSystem.RhsVector = rhsVector;
+			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.CopyFrom(rhsVector);
 
 			InitializeRhs();
 			CalculateRhsImplicit();
@@ -170,7 +170,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		private void CalculateRhsImplicit()
 		{
-			solver.LinearSystem.RhsVector = rhs;
+			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.CopyFrom(rhs);
 		}
 
 		private void InitializeInternalVectors()
@@ -180,8 +180,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void InitializeRhs()
 		{
-			provider.ProcessRhs(transientCoeffs, solver.LinearSystem.RhsVector);
-			rhs.CopyFrom(solver.LinearSystem.RhsVector);
+			provider.ProcessRhs(transientCoeffs, ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
+			rhs.CopyFrom(ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 		}
 
 		private void UpdateResultStorages(DateTime start, DateTime end)

@@ -260,7 +260,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			Debug.WriteLine("BDF step: {0}", currentTimeStep);
 
 			IGlobalVector rhsVector = provider.GetRhs(currentTimeStep * timeStep);
-			solver.LinearSystem.RhsVector = rhsVector;
+			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.CopyFrom(rhsVector);
 
 			if (currentTimeStep + 1 <= BDFOrder)
 			{
@@ -352,7 +352,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			IGlobalVector rhsResult = firstOrderDerivativeComponentOfRhs;
 			rhsResult.AddIntoThis(rhs);
 
-			solver.LinearSystem.RhsVector = rhsResult;
+			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.CopyFrom(rhsResult);
 		}
 
 		private void InitializeInternalVectors()
@@ -391,8 +391,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private void InitializeRhs()
 		{
 			TransientAnalysisCoefficients coeffs = GetTransientAnalysisCoefficients();
-			provider.ProcessRhs(coeffs, solver.LinearSystem.RhsVector);
-			rhs.CopyFrom(solver.LinearSystem.RhsVector);
+			provider.ProcessRhs(coeffs, ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
+			rhs.CopyFrom(ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 		}
 
 		private void UpdateResultStorages(DateTime start, DateTime end)
