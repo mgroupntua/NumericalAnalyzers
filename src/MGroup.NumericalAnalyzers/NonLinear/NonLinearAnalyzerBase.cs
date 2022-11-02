@@ -84,7 +84,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			}
 		}
 
-		public IGlobalVector CurrentAnalysisLinearSystemRhs => throw new NotImplementedException();
+		//public IGlobalVector CurrentAnalysisLinearSystemRhs => throw new NotImplementedException();
 
 		GenericAnalyzerState CreateState()
 		{
