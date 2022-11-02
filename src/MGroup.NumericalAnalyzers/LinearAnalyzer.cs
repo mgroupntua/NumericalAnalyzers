@@ -105,6 +105,8 @@ namespace MGroup.NumericalAnalyzers
 			}
 		}
 
+		public IGlobalVector CurrentAnalysisLinearSystemRhs => throw new NotImplementedException();
+
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{
 			(String.Empty, (IGlobalVector)null)
