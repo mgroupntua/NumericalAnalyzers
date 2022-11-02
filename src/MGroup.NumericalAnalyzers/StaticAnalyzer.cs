@@ -18,7 +18,6 @@ namespace MGroup.NumericalAnalyzers
 		private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
 		private readonly INonTransientAnalysisProvider provider;
-		private readonly ISolver solver;
 
 		/// <summary>
 		/// This class defines the static analyzer.
@@ -27,12 +26,11 @@ namespace MGroup.NumericalAnalyzers
 		/// <param name="solver">Instance of the solver that will solve the linear system of equations</param>
 		/// <param name="provider">Instance of the problem type to be solved</param> 
 		/// <param name="childAnalyzer">Instance of the child analyzer that defines whether the problem is linear or nonlinear</param>
-		public StaticAnalyzer(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonTransientAnalysisProvider provider,
+		public StaticAnalyzer(IModel model, IAlgebraicModel algebraicModel, INonTransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer)
 		{
 			this.model = model;
 			this.algebraicModel = algebraicModel;
-			this.solver = solver;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
 			this.ChildAnalyzer.ParentAnalyzer = this;

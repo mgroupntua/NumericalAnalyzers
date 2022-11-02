@@ -68,6 +68,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		public IGlobalVector Responses { get; set; }
 
+		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
+
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
 			get => currentState;

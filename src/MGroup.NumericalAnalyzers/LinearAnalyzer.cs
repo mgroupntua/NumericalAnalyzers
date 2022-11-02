@@ -44,7 +44,9 @@ namespace MGroup.NumericalAnalyzers
 
 		public IParentAnalyzer ParentAnalyzer { get; set; }
 
-		public IGlobalVector Responses { get; set; } 
+		public IGlobalVector Responses { get; set; }
+
+		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
 		public void BuildMatrices()
 		{
@@ -105,7 +107,6 @@ namespace MGroup.NumericalAnalyzers
 			}
 		}
 
-		public IGlobalVector CurrentAnalysisLinearSystemRhs => throw new NotImplementedException();
 
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{
