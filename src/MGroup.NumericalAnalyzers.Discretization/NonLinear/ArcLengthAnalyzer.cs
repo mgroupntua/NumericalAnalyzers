@@ -2,15 +2,11 @@ using System;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.NumericalAnalyzers.Logging;
-using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.NumericalAnalyzers.NonLinear;
-using System.Collections.Generic;
-using MGroup.LinearAlgebra.Vectors;
+using MGroup.NumericalAnalyzers.Logging;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
@@ -284,8 +280,8 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			private bool constConstraint;
 			private int numOfIterations;
 
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, bool constConstraint = true)
-				: base(model, algebraicModel, solver, provider, numIncrements)
+			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, bool constConstraint = true)
+				: base(algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;

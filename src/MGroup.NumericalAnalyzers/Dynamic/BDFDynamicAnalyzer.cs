@@ -1,17 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.NumericalAnalyzers.Logging;
-using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Discretization.Entities;
-using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.MSolve.AnalysisWorkflow.Transient;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
-using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Constitutive;
+using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.NumericalAnalyzers.Logging;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -38,7 +35,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private int currentTimeStep = 0;
 
-		private readonly IModel model;
+		//private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
 		private readonly ITransientAnalysisProvider provider;
 		private IGlobalVector rhs;
@@ -61,10 +58,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized</param>
 		/// <param name="bdfOrder">Order of the scheme [1,5]</param>
 
-		private BDFDynamicAnalyzer(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
+		private BDFDynamicAnalyzer(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int bdfOrder, int currentTimeStep)
 		{
-			this.model = model;
 			this.algebraicModel = algebraicModel;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
@@ -207,12 +203,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 			}
 
-			return new TransientAnalysisCoefficients
-			{
-				SecondOrderDerivativeCoefficient = 0d,
-				FirstOrderDerivativeCoefficient = timeStepNumerator / timeStep,
-				ZeroOrderDerivativeCoefficient = 1,
-			};
+			var c = new TransientAnalysisCoefficients();
+			c[DifferentiationOrder.Zero] = 1;
+			c[DifferentiationOrder.First] = timeStepNumerator / timeStep;
+			c[DifferentiationOrder.Second] = 0;
+
+			return c;
 		}
 
 
@@ -232,7 +228,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			if (isFirstAnalysis)
 			{
 				//provider.GetProblemDofTypes();
-				model.ConnectDataStructures();
+				//model.ConnectDataStructures();
+				// Connect data structures of model is called by the algebraic model
 				algebraicModel.OrderDofs();
 			}
 
@@ -342,8 +339,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				solutionTerm.AddIntoThis(solutionOfPreviousStep[bdfTerm - 1].Scale(rhsFactors[bdfTerm]));
 			}
 
-			firstOrderDerivativeComponentOfRhs = provider.FirstOrderDerivativeMatrixVectorProduct(solutionTerm);
-			firstOrderDerivativeComponentOfRhs.AddIntoThis(provider.FirstOrderDerivativeMatrixVectorProduct(provider.GetFirstOrderDerivativeVectorFromBoundaryConditions(time)));
+			firstOrderDerivativeComponentOfRhs = provider.MatrixVectorProduct(DifferentiationOrder.First, solutionTerm);
+			firstOrderDerivativeComponentOfRhs.AddIntoThis(provider.MatrixVectorProduct(DifferentiationOrder.First, provider.GetVectorFromModelConditions(DifferentiationOrder.First, time)));
 			firstOrderDerivativeComponentOfRhs.ScaleIntoThis(a2);
 
 			IGlobalVector rhsResult = firstOrderDerivativeComponentOfRhs;
@@ -466,15 +463,13 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly double timeStep;
 			private readonly double totalTime;
 			private readonly IChildAnalyzer childAnalyzer;
-			private readonly IModel model;
 			private readonly IAlgebraicModel algebraicModel;
 			private readonly ITransientAnalysisProvider provider;
 			private readonly int bdfOrder, currentTimeStep;
 
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
+			public Builder(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int bdfOrder, int currentTimeStep = 0)
 			{
-				this.model = model;
 				this.algebraicModel = algebraicModel;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
@@ -486,7 +481,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public BDFDynamicAnalyzer Build()
-				=> new BDFDynamicAnalyzer(model, algebraicModel, provider, childAnalyzer, timeStep, totalTime, bdfOrder, currentTimeStep);
+				=> new BDFDynamicAnalyzer(algebraicModel, provider, childAnalyzer, timeStep, totalTime, bdfOrder, currentTimeStep);
 		}
 	}
 }

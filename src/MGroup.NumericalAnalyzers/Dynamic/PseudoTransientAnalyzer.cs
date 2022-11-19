@@ -2,14 +2,13 @@ using System;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.NumericalAnalyzers.Logging;
-using MGroup.MSolve.Discretization.Entities;
-using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.MSolve.AnalysisWorkflow.Transient;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
-using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Constitutive;
+using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.NumericalAnalyzers.Logging;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -19,12 +18,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private const string CURRENTTIMESTEP = "Current timestep";
 		private const string CURRENTSOLUTION = "Current solution";
 
-		private readonly TransientAnalysisCoefficients transientCoeffs = new ()
-		{
-			SecondOrderDerivativeCoefficient = 0,
-			FirstOrderDerivativeCoefficient = 0,
-			ZeroOrderDerivativeCoefficient = 1,
-		};
+		private readonly TransientAnalysisCoefficients transientCoeffs = new TransientAnalysisCoefficients();
 
 		/// <summary>
 		/// This class implements a Pseudo-Transient Analyzer
@@ -38,7 +32,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// Authors: George Stavroulakis, Theofilos Christodoulou.
 		/// </summary>
 		private readonly double totalTime;
-		private readonly IModel model;
+		//private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
 		private readonly ITransientAnalysisProvider provider;
 		private IGlobalVector rhs;
@@ -54,10 +48,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="childAnalyzer">Instance of the child analyzer that will handle the solution of the system of equations.</param>
 		/// <param name="timeStep">Instance of the time step of the method that will be initialized.</param>
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized.</param>
-		private PseudoTransientAnalyzer(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
+		private PseudoTransientAnalyzer(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep)
 		{
-			this.model = model;
 			this.algebraicModel = algebraicModel;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
@@ -65,6 +58,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			this.totalTime = totalTime;
 			this.currentStep = currentStep;
 			this.ChildAnalyzer.ParentAnalyzer = this;
+
+			transientCoeffs[DifferentiationOrder.Zero] = 1;
+			transientCoeffs[DifferentiationOrder.First] = 0;
+			transientCoeffs[DifferentiationOrder.Second] = 0;
 		}
 
 		public IAnalysisWorkflowLog[] Logs => null;
@@ -113,7 +110,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			if (isFirstAnalysis)
 			{
-				model.ConnectDataStructures();
+				//model.ConnectDataStructures();
+				// Connect data structures of model is called by the algebraic model
 				algebraicModel.OrderDofs();
 			}
 
@@ -230,15 +228,13 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly double timeStep;
 			private readonly double totalTime;
 			private readonly IChildAnalyzer childAnalyzer;
-			private readonly IModel model;
 			private readonly IAlgebraicModel algebraicModel;
 			private readonly ITransientAnalysisProvider provider;
 			private int currentStep = 0;
 
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
+			public Builder(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep = 0)
 			{
-				this.model = model;
 				this.algebraicModel = algebraicModel;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
@@ -249,7 +245,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public PseudoTransientAnalyzer Build()
-				=> new PseudoTransientAnalyzer(model, algebraicModel, provider, childAnalyzer, timeStep, totalTime, currentStep);
+				=> new PseudoTransientAnalyzer(algebraicModel, provider, childAnalyzer, timeStep, totalTime, currentStep);
 		}
 	}
 }

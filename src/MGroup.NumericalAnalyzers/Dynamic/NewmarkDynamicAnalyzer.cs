@@ -1,17 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.NumericalAnalyzers.Logging;
-using MGroup.LinearAlgebra.Vectors;
-using MGroup.MSolve.Discretization.Entities;
-using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
-using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.AnalysisWorkflow.Transient;
 using MGroup.MSolve.Constitutive;
+using MGroup.MSolve.DataStructures;
+using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.NumericalAnalyzers.Logging;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -59,7 +56,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private readonly double a5;
 		private readonly double a6;
 		private readonly double a7;
-		private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
 		private readonly ITransientAnalysisProvider provider;
 		private IGlobalVector rhs;
@@ -85,10 +81,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized</param>
 		/// <param name="alpha">Instance of parameter "alpha" of the method that will be initialized</param>
 		/// <param name="delta">Instance of parameter "delta" of the method that will be initialized</param>
-		private NewmarkDynamicAnalyzer(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
+		private NewmarkDynamicAnalyzer(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta, int currentStep)
 		{
-			this.model = model;
 			this.algebraicModel = algebraicModel;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
@@ -153,13 +148,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public void BuildMatrices()
 		{
-			var coeffs = new TransientAnalysisCoefficients
-			{
-				SecondOrderDerivativeCoefficient = a0,
-				FirstOrderDerivativeCoefficient = a1,
-				ZeroOrderDerivativeCoefficient = 1,
-			};
-			provider.LinearCombinationOfMatricesIntoEffectiveMatrix(coeffs);
+			var c = new TransientAnalysisCoefficients();
+			c[DifferentiationOrder.Zero] = 1;
+			c[DifferentiationOrder.First] = a1;
+			c[DifferentiationOrder.Second] = a0;
+
+			provider.LinearCombinationOfMatricesIntoEffectiveMatrix(c);
 		}
 
 		/// <summary>
@@ -167,8 +161,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
-			IGlobalVector result = provider.SecondOrderDerivativeMatrixVectorProduct(currentSolution);
-			IGlobalVector temp = provider.FirstOrderDerivativeMatrixVectorProduct(currentSolution);
+			IGlobalVector result = provider.MatrixVectorProduct(DifferentiationOrder.Second, currentSolution);
+			IGlobalVector temp = provider.MatrixVectorProduct(DifferentiationOrder.First, currentSolution);
 			result.LinearCombinationIntoThis(a0, temp, a1);
 			return result;
 		}
@@ -181,7 +175,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			if (isFirstAnalysis)
 			{
 				//provider.GetProblemDofTypes();
-				model.ConnectDataStructures();
+				//model.ConnectDataStructures();
+				// Connect data structures of model is called by the algebraic model
 				algebraicModel.OrderDofs();
 			}
 
@@ -242,8 +237,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			firstOrderDerivativeOfSolutionForRhs = solution.LinearCombination(a1, firstOrderDerivativeOfSolution, a4);
 			firstOrderDerivativeOfSolutionForRhs.AxpyIntoThis(secondOrderDerivativeOfSolution, a5);
 
-			secondOrderDerivativeComponentOfRhs = provider.SecondOrderDerivativeMatrixVectorProduct(secondOrderDerivativeOfSolutionForRhs);
-			firstOrderDerivativeComponentOfRhs = provider.FirstOrderDerivativeMatrixVectorProduct(firstOrderDerivativeOfSolutionForRhs);
+			secondOrderDerivativeComponentOfRhs = provider.MatrixVectorProduct(DifferentiationOrder.Second, secondOrderDerivativeOfSolutionForRhs);
+			firstOrderDerivativeComponentOfRhs = provider.MatrixVectorProduct(DifferentiationOrder.First, firstOrderDerivativeOfSolutionForRhs);
 
 			IGlobalVector rhsResult = secondOrderDerivativeComponentOfRhs.Add(firstOrderDerivativeComponentOfRhs);
 			bool addRhs = true;
@@ -286,13 +281,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void InitializeRhs()
 		{
-			TransientAnalysisCoefficients coeffs = new TransientAnalysisCoefficients
-			{
-				SecondOrderDerivativeCoefficient = a0,
-				FirstOrderDerivativeCoefficient = a1,
-				ZeroOrderDerivativeCoefficient = 1,
-			};
-			provider.ProcessRhs(coeffs, ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
+			var c = new TransientAnalysisCoefficients();
+			c[DifferentiationOrder.Zero] = 1;
+			c[DifferentiationOrder.First] = a1;
+			c[DifferentiationOrder.Second] = a0;
+			provider.ProcessRhs(c, ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 			rhs.CopyFrom(ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 		}
 
@@ -309,10 +302,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void AddExternalVelocitiesAndAccelerations(double time)
 		{
-			IGlobalVector externalAccelerations = provider.GetSecondOrderDerivativeVectorFromBoundaryConditions(time);
+			IGlobalVector externalAccelerations = provider.GetVectorFromModelConditions(DifferentiationOrder.Second, time);
 			secondOrderDerivativeOfSolution.AddIntoThis(externalAccelerations);
 
-			IGlobalVector externalVelocities = provider.GetFirstOrderDerivativeVectorFromBoundaryConditions(time);
+			IGlobalVector externalVelocities = provider.GetVectorFromModelConditions(DifferentiationOrder.First, time);
 			firstOrderDerivativeOfSolution.AddIntoThis(externalVelocities);
 		}
 
@@ -375,17 +368,15 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private readonly double timeStep;
 			private readonly double totalTime;
 			private readonly IChildAnalyzer childAnalyzer;
-			private readonly IModel model;
 			private readonly IAlgebraicModel algebraicModel;
 			private readonly ITransientAnalysisProvider provider;
 			private double beta = 0.25;
 			private double gamma = 0.5;
 			private int currentStep = 0;
 
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
+			public Builder(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep = 0)
 			{
-				this.model = model;
 				this.algebraicModel = algebraicModel;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
@@ -474,7 +465,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public NewmarkDynamicAnalyzer Build()
-				=> new NewmarkDynamicAnalyzer(model, algebraicModel, provider, childAnalyzer, timeStep, totalTime, beta, gamma, currentStep);
+				=> new NewmarkDynamicAnalyzer(algebraicModel, provider, childAnalyzer, timeStep, totalTime, beta, gamma, currentStep);
 		}
 	}
 }
