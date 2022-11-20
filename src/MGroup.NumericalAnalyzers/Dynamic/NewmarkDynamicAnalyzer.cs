@@ -256,8 +256,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			secondOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeOfSolutionForRhs = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
-			solutionOfPreviousStep = algebraicModel.CreateZeroVector();
-			firstOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
+			solutionOfPreviousStep = provider.GetVectorFromModelConditions(DifferentiationOrder.Zero, 0);
+			firstOrderDerivativeOfSolution = algebraicModel.CreateZeroVector(); // It is updated at AddExternalVelocitiesAndAccelerations
 			secondOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
 			rhs = algebraicModel.CreateZeroVector();
 
