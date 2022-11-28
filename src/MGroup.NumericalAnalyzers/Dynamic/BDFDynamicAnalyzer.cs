@@ -28,7 +28,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private const string SOLUTION_N_4 = "Previous solution (n-4)";
 		private const string SOLUTION_N_5 = "Previous solution (n-5)";
 		private const string FIRSTORDERSOLUTION = "First order derivative of solution";
-		
+
 		private readonly double timeStep;
 
 		private readonly double totalTime;
@@ -104,7 +104,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				currentState.StateVectors[SOLUTION_N_4].CheckForCompatibility = false;
 				currentState.StateVectors[SOLUTION_N_5].CheckForCompatibility = false;
 				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = false;
-				
+
 				solution.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
 
 				solutionOfPreviousStep[0].CopyFrom(currentState.StateVectors[SOLUTION_N_1]);
@@ -126,7 +126,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				}
 
 				firstOrderDerivativeOfSolution.CopyFrom(currentState.StateVectors[FIRSTORDERSOLUTION]);
-				
+
 				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
 				currentState.StateVectors[SOLUTION_N_1].CheckForCompatibility = true;
 				currentState.StateVectors[SOLUTION_N_2].CheckForCompatibility = true;
@@ -379,7 +379,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				solutionOfPreviousStep[i] = algebraicModel.CreateZeroVector();
 			}
 
-			solutionOfPreviousStep[0].CopyFrom(solution);
+			solutionOfPreviousStep[0].CopyFrom(provider.GetVectorFromModelConditions(DifferentiationOrder.Zero, 0));
 		}
 
 		private void InitializeRhs()
