@@ -74,6 +74,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				throw new ArgumentException("Wrong BDF order. Must be in [1,5]");
 			}
+
+			if (provider.ProblemOrder > DifferentiationOrder.First)
+			{
+				throw new ArgumentException($"Wrong problem order. Must be zero or first order and it is {provider.ProblemOrder}");
+			}
 		}
 
 		public int BDFOrder { get; }
@@ -173,44 +178,20 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public void BuildMatrices()
 		{
-			var coeffs = GetTransientAnalysisCoefficients();
-			provider.LinearCombinationOfMatricesIntoEffectiveMatrixNoOverwrite(coeffs);
-		}
-
-		private TransientAnalysisCoefficients GetTransientAnalysisCoefficients()
-		{
-			int bdfOrderInternal = Math.Min(currentTimeStep + 1, BDFOrder);
-			double timeStepNumerator;
-			switch (bdfOrderInternal)
+			var bdfFactor = Math.Min(currentTimeStep + 1, BDFOrder) switch
 			{
-				case 1:
-					timeStepNumerator = 1;
-					break;
-				case 2:
-					timeStepNumerator = 3.0 / 2.0;
-					break;
-				case 3:
-					timeStepNumerator = 11.0 / 6.0;
-					break;
-				case 4:
-					timeStepNumerator = 25.0 / 12.0;
-					break;
-				case 5:
-					timeStepNumerator = 137.0 / 60.0;
-					break;
-				default:
-					throw new ArgumentException("Wrong BDF Order");
+				1 => 1d / timeStep,
+				2 => 1.5d / timeStep, // 3.0 / 2.0
+				3 => 11d / 6d / timeStep,
+				4 => 25d / 12d / timeStep,
+				5 => 137d / 60d / timeStep,
+				_ => throw new ArgumentException("Wrong BDF Order"),
+			};
+			var matrix = provider.GetMatrix(DifferentiationOrder.Zero).Copy();
+			matrix.LinearCombinationIntoThis(1d, provider.GetMatrix(DifferentiationOrder.First), bdfFactor);
 
-			}
-
-			var c = new TransientAnalysisCoefficients();
-			c[DifferentiationOrder.Zero] = 1;
-			c[DifferentiationOrder.First] = timeStepNumerator / timeStep;
-			c[DifferentiationOrder.Second] = 0;
-
-			return c;
+			algebraicModel.LinearSystem.Matrix = matrix;
 		}
-
 
 		/// <summary>
 		/// Calculates inertia forces and damping forces.
@@ -227,18 +208,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{//TODO: get initial conditions!
 			if (isFirstAnalysis)
 			{
-				//provider.GetProblemDofTypes();
-				//model.ConnectDataStructures();
 				// Connect data structures of model is called by the algebraic model
 				algebraicModel.OrderDofs();
 			}
 
 			BuildMatrices();
-
-			provider.AssignRhs();
-
 			InitializeInternalVectors();
-
 			InitializeRhs();
 
 			if (ChildAnalyzer == null)
@@ -339,8 +314,13 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				solutionTerm.AddIntoThis(solutionOfPreviousStep[bdfTerm - 1].Scale(rhsFactors[bdfTerm]));
 			}
 
-			firstOrderDerivativeComponentOfRhs = provider.MatrixVectorProduct(DifferentiationOrder.First, solutionTerm);
-			firstOrderDerivativeComponentOfRhs.AddIntoThis(provider.MatrixVectorProduct(DifferentiationOrder.First, provider.GetVectorFromModelConditions(DifferentiationOrder.First, time)));
+			var modelConditions = provider.GetVectorFromModelConditions(DifferentiationOrder.First, time);
+			var modelConditionsProduct = algebraicModel.CreateZeroVector();
+			provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(modelConditions, modelConditionsProduct);
+			provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(solutionTerm, firstOrderDerivativeComponentOfRhs);
+			firstOrderDerivativeComponentOfRhs.AddIntoThis(modelConditionsProduct);
+			//firstOrderDerivativeComponentOfRhs = provider.MatrixVectorProduct(DifferentiationOrder.First, solutionTerm);
+			//firstOrderDerivativeComponentOfRhs.AddIntoThis(provider.MatrixVectorProduct(DifferentiationOrder.First, provider.GetVectorFromModelConditions(DifferentiationOrder.First, time)));
 			firstOrderDerivativeComponentOfRhs.ScaleIntoThis(a2);
 
 			IGlobalVector rhsResult = firstOrderDerivativeComponentOfRhs;
@@ -384,8 +364,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void InitializeRhs()
 		{
-			TransientAnalysisCoefficients coeffs = GetTransientAnalysisCoefficients();
-			provider.ProcessRhs(coeffs, ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 			rhs.CopyFrom(ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 		}
 

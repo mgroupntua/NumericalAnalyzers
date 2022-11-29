@@ -82,7 +82,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
 					{
 						provider.Reset();
-						BuildMatrices();
+						parentAnalyzer.BuildMatrices();
 					}
 				}
 				Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);

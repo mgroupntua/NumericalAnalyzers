@@ -190,7 +190,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
 					{
 						provider.Reset();
-						BuildMatrices();
+						parentAnalyzer.BuildMatrices();
 					}
 
 				}

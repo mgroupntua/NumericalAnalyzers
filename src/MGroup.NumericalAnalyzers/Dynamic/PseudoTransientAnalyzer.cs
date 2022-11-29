@@ -18,8 +18,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private const string CURRENTTIMESTEP = "Current timestep";
 		private const string CURRENTSOLUTION = "Current solution";
 
-		private readonly TransientAnalysisCoefficients transientCoeffs = new TransientAnalysisCoefficients();
-
 		/// <summary>
 		/// This class implements a Pseudo-Transient Analyzer
 		/// Authors: George Stavroulakis, Theofilos Christodoulou.
@@ -58,10 +56,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			this.totalTime = totalTime;
 			this.currentStep = currentStep;
 			this.ChildAnalyzer.ParentAnalyzer = this;
-
-			transientCoeffs[DifferentiationOrder.Zero] = 1;
-			transientCoeffs[DifferentiationOrder.First] = 0;
-			transientCoeffs[DifferentiationOrder.Second] = 0;
 		}
 
 		public IAnalysisWorkflowLog[] Logs => null;
@@ -95,7 +89,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public void BuildMatrices()
 		{
-			provider.LinearCombinationOfMatricesIntoEffectiveMatrix(transientCoeffs);
+			algebraicModel.LinearSystem.Matrix = provider.GetMatrix(DifferentiationOrder.Zero);
 		}
 
 		/// <summary>
@@ -110,17 +104,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			if (isFirstAnalysis)
 			{
-				//model.ConnectDataStructures();
 				// Connect data structures of model is called by the algebraic model
 				algebraicModel.OrderDofs();
 			}
 
 			BuildMatrices();
-
-			provider.AssignRhs();
-
 			InitializeInternalVectors();
-
 			InitializeRhs();
 
 			if (ChildAnalyzer == null)
@@ -175,7 +164,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void InitializeRhs()
 		{
-			provider.ProcessRhs(transientCoeffs, ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 			rhs.CopyFrom(ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 		}
 

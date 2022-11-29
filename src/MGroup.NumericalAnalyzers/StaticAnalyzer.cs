@@ -2,6 +2,7 @@ using System;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
+using MGroup.MSolve.AnalysisWorkflow.Transient;
 using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.Solution.LinearSystem;
@@ -60,7 +61,9 @@ namespace MGroup.NumericalAnalyzers
 		/// </summary>
 		public void BuildMatrices()
 		{
-			provider.CalculateMatrix();
+			var matrix = provider.GetMatrix();
+
+			algebraicModel.LinearSystem.Matrix = matrix;
 		}
 
 		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
@@ -75,20 +78,11 @@ namespace MGroup.NumericalAnalyzers
 		{
 			if (isFirstAnalysis)
 			{
-				//provider.GetProblemDofTypes();
-				//model.ConnectDataStructures();
 				// Connect data structures of model is called by the algebraic model
 				algebraicModel.OrderDofs();
 			}
 
 			BuildMatrices();
-
-			provider.AssignRhs();//AssignLoads(solver.DistributeNodalLoads);
-			//foreach (ILinearSystem linearSystem in solver.LinearSystems.Values)
-			//{
-			//	linearSystem.RhsVector = linearSystem.Subdomain.Forces;
-			//}
-
 			if (ChildAnalyzer == null)
 			{
 				throw new InvalidOperationException("Static analyzer must contain an embedded analyzer.");
@@ -107,6 +101,8 @@ namespace MGroup.NumericalAnalyzers
 				throw new InvalidOperationException("Static analyzer must contain an embedded analyzer.");
 			}
 
+			IGlobalVector rhsVector = provider.GetRhs();
+			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.AddIntoThis(rhsVector);
 			ChildAnalyzer.Solve();
 		}
 	}

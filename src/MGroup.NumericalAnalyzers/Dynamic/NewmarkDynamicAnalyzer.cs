@@ -106,6 +106,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			a5 = timeStep * 0.5 * ((delta / alpha) - 2);
 			a6 = timeStep * (1 - delta);
 			a7 = delta * timeStep;
+
+			if (provider.ProblemOrder > DifferentiationOrder.Second)
+			{
+				throw new ArgumentException($"Wrong problem order. Must be zero, first or second order and it is {provider.ProblemOrder}");
+			}
 		}
 
 		public IAnalysisWorkflowLog[] Logs => null;
@@ -148,12 +153,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public void BuildMatrices()
 		{
-			var c = new TransientAnalysisCoefficients();
-			c[DifferentiationOrder.Zero] = 1;
-			c[DifferentiationOrder.First] = a1;
-			c[DifferentiationOrder.Second] = a0;
+			var matrix = provider.GetMatrix(DifferentiationOrder.Zero).Copy();
+			matrix.LinearCombinationIntoThis(1d, provider.GetMatrix(DifferentiationOrder.Second), a0);
+			matrix.AxpyIntoThis(provider.GetMatrix(DifferentiationOrder.First), a1);
 
-			provider.LinearCombinationOfMatricesIntoEffectiveMatrix(c);
+			algebraicModel.LinearSystem.Matrix = matrix;
 		}
 
 		/// <summary>
@@ -161,9 +165,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
-			IGlobalVector result = provider.MatrixVectorProduct(DifferentiationOrder.Second, currentSolution);
-			IGlobalVector temp = provider.MatrixVectorProduct(DifferentiationOrder.First, currentSolution);
+			var result = algebraicModel.CreateZeroVector();
+			provider.GetMatrix(DifferentiationOrder.Second).MultiplyVector(currentSolution, result);
+			var temp = algebraicModel.CreateZeroVector();
+			provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(currentSolution, temp);
 			result.LinearCombinationIntoThis(a0, temp, a1);
+
 			return result;
 		}
 
@@ -174,18 +181,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			if (isFirstAnalysis)
 			{
-				//provider.GetProblemDofTypes();
-				//model.ConnectDataStructures();
 				// Connect data structures of model is called by the algebraic model
 				algebraicModel.OrderDofs();
 			}
 
 			BuildMatrices();
-
-			provider.AssignRhs();
-
 			InitializeInternalVectors();
-
 			InitializeRhs();
 
 			if (ChildAnalyzer == null)
@@ -237,8 +238,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			firstOrderDerivativeOfSolutionForRhs = solution.LinearCombination(a1, firstOrderDerivativeOfSolution, a4);
 			firstOrderDerivativeOfSolutionForRhs.AxpyIntoThis(secondOrderDerivativeOfSolution, a5);
 
-			secondOrderDerivativeComponentOfRhs = provider.MatrixVectorProduct(DifferentiationOrder.Second, secondOrderDerivativeOfSolutionForRhs);
-			firstOrderDerivativeComponentOfRhs = provider.MatrixVectorProduct(DifferentiationOrder.First, firstOrderDerivativeOfSolutionForRhs);
+			provider.GetMatrix(DifferentiationOrder.Second).MultiplyVector(secondOrderDerivativeOfSolutionForRhs, secondOrderDerivativeComponentOfRhs);
+			provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(firstOrderDerivativeOfSolutionForRhs, firstOrderDerivativeComponentOfRhs);
 
 			IGlobalVector rhsResult = secondOrderDerivativeComponentOfRhs.Add(firstOrderDerivativeComponentOfRhs);
 			bool addRhs = true;
@@ -256,7 +257,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			secondOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeOfSolutionForRhs = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
-			solutionOfPreviousStep = provider.GetVectorFromModelConditions(DifferentiationOrder.Zero, 0);
+			solutionOfPreviousStep = algebraicModel.CreateZeroVector();
 			firstOrderDerivativeOfSolution = algebraicModel.CreateZeroVector(); // It is updated at AddExternalVelocitiesAndAccelerations
 			secondOrderDerivativeOfSolution = algebraicModel.CreateZeroVector();
 			rhs = algebraicModel.CreateZeroVector();
@@ -267,25 +268,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 			else
 			{
-				solution = algebraicModel.CreateZeroVector();
+				solution = provider.GetVectorFromModelConditions(DifferentiationOrder.Zero, 0);
 			}
-			//if (solver.LinearSystem.Solution != null)
-			//{
-			//	solution = solver.LinearSystem.Solution.Copy();
-			//}
-			//else
-			//{
-			//	solution = algebraicModel.CreateZeroVector();
-			//}
 		}
 
 		private void InitializeRhs()
 		{
-			var c = new TransientAnalysisCoefficients();
-			c[DifferentiationOrder.Zero] = 1;
-			c[DifferentiationOrder.First] = a1;
-			c[DifferentiationOrder.Second] = a0;
-			provider.ProcessRhs(c, ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 			rhs.CopyFrom(ChildAnalyzer.CurrentAnalysisLinearSystemRhs);
 		}
 

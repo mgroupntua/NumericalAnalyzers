@@ -98,20 +98,6 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
 
 		/// <summary>
-		/// Builds the tangent stiffness matrix of the system.
-		/// </summary>
-		public void BuildMatrices()
-		{
-			if (parentAnalyzer == null)
-			{
-				throw new InvalidOperationException(
-				"This Newton-Raphson nonlinear analyzer has no parent.");
-			}
-
-			parentAnalyzer.BuildMatrices();
-		}
-
-		/// <summary>
 		/// Initializes internal vector before the first analysis.
 		/// </summary>
 		public void Initialize(bool isFirstAnalysis)
