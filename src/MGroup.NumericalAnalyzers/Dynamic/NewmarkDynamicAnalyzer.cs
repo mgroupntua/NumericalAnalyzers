@@ -27,6 +27,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// Authors: George Stavroulakis, George Soimiris
 		/// </summary>
 		private readonly double beta;
+		private readonly bool calculateInitialDerivativeVectors = true;
 
 		/// <summary>
 		/// This class makes the appropriate arrangements for the solution of linear dynamic equations
@@ -80,8 +81,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="alpha">Instance of parameter "alpha" of the method that will be initialized</param>
 		/// <param name="delta">Instance of parameter "delta" of the method that will be initialized</param>
 		private NewmarkDynamicAnalyzer(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
-			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta, int currentStep)
+			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta, int currentStep, bool calculateInitialDerivativeVectors)
 		{
+			this.calculateInitialDerivativeVectors = calculateInitialDerivativeVectors;
 			this.algebraicModel = algebraicModel;
 			this.provider = provider;
 			this.ChildAnalyzer = childAnalyzer;
@@ -109,6 +111,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				throw new ArgumentException($"Wrong problem order. Must be zero, first or second order and it is {provider.ProblemOrder}");
 			}
+
+			this.calculateInitialDerivativeVectors = calculateInitialDerivativeVectors;
 		}
 
 		public IAnalysisWorkflowLog[] Logs => null;
@@ -174,11 +178,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveForInitialConditions()
 		{
-			if (provider.ProblemOrder == DifferentiationOrder.Zero)
+			if (calculateInitialDerivativeVectors == false || currentStep != 0 || provider.ProblemOrder == DifferentiationOrder.Zero)
 			{
 				return;
 			}
 
+			provider.SetTransientAnalysisPhase(TransientAnalysisPhase.InitialConditionEvaluation);
 			var rhsFromDerivatives = algebraicModel.CreateZeroVector();
 			var temp = algebraicModel.CreateZeroVector();
 			for (int i = 0; i < (int)provider.ProblemOrder - 1; i++)
@@ -188,7 +193,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				if (lhs.Norm2() != 0)
 				{
 					provider.GetMatrix(d).MultiplyVector(lhs, temp);
-					rhsFromDerivatives.AddIntoThis(temp);
+					rhsFromDerivatives.SubtractIntoThis(temp);
 				}
 			}
 
@@ -229,6 +234,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveCurrentTimestep()
 		{
+			provider.SetTransientAnalysisPhase(TransientAnalysisPhase.Solution);
 			Debug.WriteLine("Newmark step: {0}", currentStep);
 
 			AddHigherOrderContributions(currentStep * timeStep);
@@ -398,6 +404,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		public class Builder
 		{
+			private readonly bool calculateInitialDerivativeVectors = true;
 			private readonly double timeStep;
 			private readonly double totalTime;
 			private readonly IChildAnalyzer childAnalyzer;
@@ -408,8 +415,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			private int currentStep = 0;
 
 			public Builder(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
-				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, int currentStep = 0)
+				IChildAnalyzer childAnalyzer, double timeStep, double totalTime, bool calculateInitialDerivativeVectors = true, int currentStep = 0)
 			{
+				this.calculateInitialDerivativeVectors = calculateInitialDerivativeVectors;
 				this.algebraicModel = algebraicModel;
 				this.provider = provider;
 				this.childAnalyzer = childAnalyzer;
@@ -498,7 +506,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			public NewmarkDynamicAnalyzer Build()
-				=> new NewmarkDynamicAnalyzer(algebraicModel, provider, childAnalyzer, timeStep, totalTime, beta, gamma, currentStep);
+				=> new NewmarkDynamicAnalyzer(algebraicModel, provider, childAnalyzer, timeStep, totalTime, beta, gamma, currentStep, calculateInitialDerivativeVectors);
 		}
 	}
 }
