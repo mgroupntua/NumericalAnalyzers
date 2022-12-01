@@ -25,8 +25,6 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			this.solver = solver;
 			this.provider = provider;
 			this.numIncrements = numIncrements;
-
-			ModelUpdater = new NonLinearModelUpdater(this.algebraicModel);
 		}
 
 		public int MaxIterationsPerIncrement
@@ -70,7 +68,5 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				residualTolerance = value;
 			}
 		}
-
-		public INonLinearModelUpdater ModelUpdater { get; set; }
 	}
 }

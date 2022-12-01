@@ -25,9 +25,8 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
 		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
 		private LoadControlAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			INonLinearModelUpdater modelUpdater,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
-			: base(algebraicModel, solver, provider, modelUpdater, numIncrements, maxIterationsPerIncrement,
+			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
 		{ }
 
@@ -113,7 +112,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				ResidualTolerance = 1E-3;
 			}
 
-			public LoadControlAnalyzer Build() => new LoadControlAnalyzer(algebraicModel, solver, provider, ModelUpdater,
+			public LoadControlAnalyzer Build() => new LoadControlAnalyzer(algebraicModel, solver, provider,
 				numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
 		}
 	}

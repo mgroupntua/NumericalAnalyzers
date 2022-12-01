@@ -55,9 +55,8 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="constConstraint">Option for constant radius of the constraint (default : constConstraint = 'true')</param>
 		/// <param name="numOfIterations">(only usefull for constConstraint = false) Number of expected iterations within a load increment (default : numOfIterations = 4)</param>
 		private ArcLengthAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			INonLinearModelUpdater modelUpdater,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance, double shape, bool constConstraint, int numOfIterations)
-			: base(algebraicModel, solver, provider, modelUpdater, numIncrements, maxIterationsPerIncrement,
+			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
 		{
 			this.shape = shape;
@@ -213,7 +212,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 
 		new private IGlobalVector CalculateInternalRhs(int increment, int iteration)
 		{
-			IGlobalVector internalRhs = modelUpdater.CalculateResponseIntegralVector(uPlusdu);
+			IGlobalVector internalRhs = provider.CalculateResponseIntegralVector(uPlusdu);
 			provider.ProcessInternalRhs(uPlusdu, internalRhs);
 
 			if (parentAnalyzer != null)
@@ -291,7 +290,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				this.numOfIterations = numOfIterations;
 			}
 
-			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, ModelUpdater,
+			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, 
 					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, shape, constConstraint, numOfIterations);
 		}
 	}
