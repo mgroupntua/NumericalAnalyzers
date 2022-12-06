@@ -282,6 +282,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			if (provider.ProblemOrder == DifferentiationOrder.First)
 			{
 				firstOrderDerivativeOfSolutionForRhs = solutions[0].LinearCombination(a1, solutions[(int)DifferentiationOrder.First], a4);
+				firstOrderDerivativeOfSolutionForRhs.AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a5);
 				provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(firstOrderDerivativeOfSolutionForRhs, firstOrderDerivativeComponentOfRhs);
 			}
 
@@ -297,8 +298,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void InitializeInternalVectors()
 		{
-			solutions = new IGlobalVector[(int)provider.ProblemOrder + 1];
-			for (int i = 0; i <= (int)provider.ProblemOrder; i++)
+			solutions = new IGlobalVector[3];
+			for (int i = 0; i < 3; i++)
 			{
 				solutions[i] = algebraicModel.CreateZeroVector();
 			}
@@ -349,17 +350,15 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			zeroOrderDerivativeSolutionOfPreviousStep.CopyFrom(solutions[0]);
 			solutions[0].CopyFrom(ChildAnalyzer.CurrentAnalysisResult);
 
-			if (provider.ProblemOrder == DifferentiationOrder.Second)
-			{
-				var secondOrderDerivativeOfSolutionOfPreviousStep = solutions[(int)DifferentiationOrder.Second].Copy();
+			var secondOrderDerivativeOfSolutionOfPreviousStep = solutions[(int)DifferentiationOrder.Second].Copy();
 
-				solutions[(int)DifferentiationOrder.Second] = solutions[0].Subtract(zeroOrderDerivativeSolutionOfPreviousStep);
-				solutions[(int)DifferentiationOrder.Second].LinearCombinationIntoThis(a0, solutions[(int)DifferentiationOrder.First], -a2);
-				solutions[(int)DifferentiationOrder.Second].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
+			solutions[(int)DifferentiationOrder.Second] = solutions[0].Subtract(zeroOrderDerivativeSolutionOfPreviousStep);
+			solutions[(int)DifferentiationOrder.Second].LinearCombinationIntoThis(a0, solutions[(int)DifferentiationOrder.First], -a2);
+			solutions[(int)DifferentiationOrder.Second].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
 
-				solutions[(int)DifferentiationOrder.First].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
-				solutions[(int)DifferentiationOrder.First].AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a7);
-			}
+			solutions[(int)DifferentiationOrder.First].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
+			solutions[(int)DifferentiationOrder.First].AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a7);
+
 		}
 
 		GenericAnalyzerState CreateState()
