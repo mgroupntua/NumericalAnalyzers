@@ -272,12 +272,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				secondOrderDerivativeOfSolutionForRhs = solutions[0].LinearCombination(a0, solutions[(int)DifferentiationOrder.First], a2);
 				secondOrderDerivativeOfSolutionForRhs.AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a3);
-				secondOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
+				secondOrderDerivativeComponentOfRhs.Clear();
 				provider.GetMatrix(DifferentiationOrder.Second).MultiplyVector(secondOrderDerivativeOfSolutionForRhs, secondOrderDerivativeComponentOfRhs);
 
 				firstOrderDerivativeOfSolutionForRhs = solutions[0].LinearCombination(a1, solutions[(int)DifferentiationOrder.First], a4);
 				firstOrderDerivativeOfSolutionForRhs.AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a5);
-				firstOrderDerivativeComponentOfRhs = algebraicModel.CreateZeroVector();
+				firstOrderDerivativeComponentOfRhs.Clear();
 				provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(firstOrderDerivativeOfSolutionForRhs, firstOrderDerivativeComponentOfRhs);
 			}
 
@@ -313,6 +313,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			zeroOrderDerivativeSolutionOfPreviousStep = algebraicModel.CreateZeroVector();
 			rhs = algebraicModel.CreateZeroVector();
 
+			//Code in comments in case we need replicate previous behavior
 			//if (ChildAnalyzer?.CurrentAnalysisResult != null)
 			//{
 			//	solutions[0] = ChildAnalyzer.CurrentAnalysisResult.Copy();
