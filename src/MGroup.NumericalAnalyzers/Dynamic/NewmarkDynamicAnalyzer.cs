@@ -272,10 +272,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				secondOrderDerivativeOfSolutionForRhs = solutions[0].LinearCombination(a0, solutions[(int)DifferentiationOrder.First], a2);
 				secondOrderDerivativeOfSolutionForRhs.AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a3);
+				secondOrderDerivativeComponentOfRhs.Clear();
 				provider.GetMatrix(DifferentiationOrder.Second).MultiplyVector(secondOrderDerivativeOfSolutionForRhs, secondOrderDerivativeComponentOfRhs);
 
 				firstOrderDerivativeOfSolutionForRhs = solutions[0].LinearCombination(a1, solutions[(int)DifferentiationOrder.First], a4);
 				firstOrderDerivativeOfSolutionForRhs.AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a5);
+				firstOrderDerivativeComponentOfRhs.Clear();
 				provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(firstOrderDerivativeOfSolutionForRhs, firstOrderDerivativeComponentOfRhs);
 			}
 
@@ -311,14 +313,17 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			zeroOrderDerivativeSolutionOfPreviousStep = algebraicModel.CreateZeroVector();
 			rhs = algebraicModel.CreateZeroVector();
 
-			if (ChildAnalyzer?.CurrentAnalysisResult != null)
-			{
-				solutions[0] = ChildAnalyzer.CurrentAnalysisResult.Copy();
-			}
-			else
-			{
-				solutions[0] = provider.GetVectorFromModelConditions(DifferentiationOrder.Zero, 0);
-			}
+			//Code in comments in case we need replicate previous behavior
+			//if (ChildAnalyzer?.CurrentAnalysisResult != null)
+			//{
+			//	solutions[0] = ChildAnalyzer.CurrentAnalysisResult.Copy();
+			//}
+			//else
+			//{
+			//	solutions[0] = provider.GetVectorFromModelConditions(DifferentiationOrder.Zero, 0);
+			//	//TODO na upologisthoun solutions[1] = provider.
+			//}
+			solutions[0] = provider.GetVectorFromModelConditions(DifferentiationOrder.Zero, 0);
 		}
 
 		private void InitializeRhs()
@@ -349,16 +354,16 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			zeroOrderDerivativeSolutionOfPreviousStep.CopyFrom(solutions[0]);
 			solutions[0].CopyFrom(ChildAnalyzer.CurrentAnalysisResult);
+			
+				var secondOrderDerivativeOfSolutionOfPreviousStep = solutions[(int)DifferentiationOrder.Second].Copy();
 
-			var secondOrderDerivativeOfSolutionOfPreviousStep = solutions[(int)DifferentiationOrder.Second].Copy();
+				solutions[(int)DifferentiationOrder.Second] = solutions[0].Subtract(zeroOrderDerivativeSolutionOfPreviousStep);
+				solutions[(int)DifferentiationOrder.Second].LinearCombinationIntoThis(a0, solutions[(int)DifferentiationOrder.First], -a2);
+				solutions[(int)DifferentiationOrder.Second].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
 
-			solutions[(int)DifferentiationOrder.Second] = solutions[0].Subtract(zeroOrderDerivativeSolutionOfPreviousStep);
-			solutions[(int)DifferentiationOrder.Second].LinearCombinationIntoThis(a0, solutions[(int)DifferentiationOrder.First], -a2);
-			solutions[(int)DifferentiationOrder.Second].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
-
-			solutions[(int)DifferentiationOrder.First].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
-			solutions[(int)DifferentiationOrder.First].AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a7);
-
+				solutions[(int)DifferentiationOrder.First].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
+				solutions[(int)DifferentiationOrder.First].AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a7);
+			
 		}
 
 		GenericAnalyzerState CreateState()
