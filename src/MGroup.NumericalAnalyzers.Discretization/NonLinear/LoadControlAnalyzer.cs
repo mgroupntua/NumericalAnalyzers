@@ -2,12 +2,10 @@ using System;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.NumericalAnalyzers.Logging;
-using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.Solution.AlgebraicModel;
+using MGroup.NumericalAnalyzers.Logging;
 using MGroup.NumericalAnalyzers.NonLinear;
 
 
@@ -27,9 +25,8 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
 		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
 		private LoadControlAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			INonLinearModelUpdater modelUpdater,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
-			: base(algebraicModel, solver, provider, modelUpdater, numIncrements, maxIterationsPerIncrement,
+			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
 		{ }
 
@@ -95,7 +92,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
 					{
 						provider.Reset();
-						BuildMatrices();
+						parentAnalyzer.BuildMatrices();
 					}
 				}
 				Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
@@ -107,15 +104,15 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 
 		public class Builder : NonLinearAnalyzerBuilderBase
 		{
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements)
-				: base(model, algebraicModel, solver, provider, numIncrements)
+			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements)
+				: base(algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;
 				ResidualTolerance = 1E-3;
 			}
 
-			public LoadControlAnalyzer Build() => new LoadControlAnalyzer(algebraicModel, solver, provider, ModelUpdater,
+			public LoadControlAnalyzer Build() => new LoadControlAnalyzer(algebraicModel, solver, provider,
 				numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
 		}
 	}

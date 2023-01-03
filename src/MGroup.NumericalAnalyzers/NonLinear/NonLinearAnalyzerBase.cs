@@ -25,7 +25,6 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected readonly INonLinearProvider provider;
 		protected readonly double residualTolerance;
 		protected readonly ISolver solver;
-		protected readonly INonLinearModelUpdater modelUpdater;
 		protected IGlobalVector rhs;
 		protected IGlobalVector u;
 		protected IGlobalVector du;
@@ -35,13 +34,11 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		private GenericAnalyzerState currentState;
 
 		public NonLinearAnalyzerBase(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			INonLinearModelUpdater modelUpdater,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
 		{
 			this.algebraicModel = algebraicModel;
 			this.solver = solver;
 			this.provider = provider;
-			this.modelUpdater = modelUpdater;
 			this.numIncrements = numIncrements;
 			this.maxIterationsPerIncrement = maxIterationsPerIncrement;
 			this.numIterationsForMatrixRebuild = numIterationsForMatrixRebuild;
@@ -100,20 +97,6 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
 
 		/// <summary>
-		/// Builds the tangent stiffness matrix of the system.
-		/// </summary>
-		public void BuildMatrices()
-		{
-			if (parentAnalyzer == null)
-			{
-				throw new InvalidOperationException(
-				"This Newton-Raphson nonlinear analyzer has no parent.");
-			}
-
-			parentAnalyzer.BuildMatrices();
-		}
-
-		/// <summary>
 		/// Initializes internal vector before the first analysis.
 		/// </summary>
 		public void Initialize(bool isFirstAnalysis)
@@ -139,7 +122,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 				uPlusdu.AddIntoThis(du);
 			}
 
-			IGlobalVector internalRhs = modelUpdater.CalculateResponseIntegralVector(uPlusdu);
+			IGlobalVector internalRhs = provider.CalculateResponseIntegralVector(uPlusdu);
 			provider.ProcessInternalRhs(uPlusdu, internalRhs);
 
 			if (parentAnalyzer != null)
@@ -224,7 +207,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected void SaveMaterialStateAndUpdateSolution()
 		{
 			ParentAnalyzer.CreateState();
-			modelUpdater.UpdateState(ParentAnalyzer.CurrentState);
+			provider.UpdateState(ParentAnalyzer.CurrentState);
 			u.AddIntoThis(du);
 		}
 

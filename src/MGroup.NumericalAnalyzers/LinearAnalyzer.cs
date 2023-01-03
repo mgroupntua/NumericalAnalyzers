@@ -48,16 +48,6 @@ namespace MGroup.NumericalAnalyzers
 
 		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
-		public void BuildMatrices()
-		{
-			if (ParentAnalyzer == null)
-			{
-				throw new InvalidOperationException("This linear analyzer has no parent.");
-			}
-
-			ParentAnalyzer.BuildMatrices();
-		}
-
 		public void Initialize(bool isFirstAnalysis)
 		{
 			//if (isFirstAnalysis)
