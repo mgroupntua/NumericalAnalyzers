@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using DotNumerics.ODE.Radau5;
+
+using MGroup.LinearAlgebra.Iterative;
 using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
@@ -47,16 +49,6 @@ namespace MGroup.NumericalAnalyzers
 		public IGlobalVector Responses { get; set; }
 
 		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
-
-		public void BuildMatrices()
-		{
-			if (ParentAnalyzer == null)
-			{
-				throw new InvalidOperationException("This linear analyzer has no parent.");
-			}
-
-			ParentAnalyzer.BuildMatrices();
-		}
 
 		public void Initialize(bool isFirstAnalysis)
 		{
@@ -107,6 +99,7 @@ namespace MGroup.NumericalAnalyzers
 			}
 		}
 
+		public IterativeStatistics AnalysisStatistics => throw new NotImplementedException();
 
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{

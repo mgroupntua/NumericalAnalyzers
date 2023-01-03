@@ -2,15 +2,11 @@ using System;
 using System.Diagnostics;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.NumericalAnalyzers.Logging;
-using MGroup.MSolve.Discretization;
-using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.NumericalAnalyzers.NonLinear;
-using System.Collections.Generic;
-using MGroup.LinearAlgebra.Vectors;
+using MGroup.NumericalAnalyzers.Logging;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
@@ -59,9 +55,8 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="constConstraint">Option for constant radius of the constraint (default : constConstraint = 'true')</param>
 		/// <param name="numOfIterations">(only usefull for constConstraint = false) Number of expected iterations within a load increment (default : numOfIterations = 4)</param>
 		private ArcLengthAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			INonLinearModelUpdater modelUpdater,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance, double shape, bool constConstraint, int numOfIterations)
-			: base(algebraicModel, solver, provider, modelUpdater, numIncrements, maxIterationsPerIncrement,
+			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
 		{
 			this.shape = shape;
@@ -194,7 +189,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					if ((iteration + 1) % numIterationsForMatrixRebuild == 0)
 					{
 						provider.Reset();
-						BuildMatrices();
+						parentAnalyzer.BuildMatrices();
 					}
 
 				}
@@ -217,7 +212,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 
 		new private IGlobalVector CalculateInternalRhs(int increment, int iteration)
 		{
-			IGlobalVector internalRhs = modelUpdater.CalculateResponseIntegralVector(uPlusdu);
+			IGlobalVector internalRhs = provider.CalculateResponseIntegralVector(uPlusdu);
 			provider.ProcessInternalRhs(uPlusdu, internalRhs);
 
 			if (parentAnalyzer != null)
@@ -284,8 +279,8 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			private bool constConstraint;
 			private int numOfIterations;
 
-			public Builder(IModel model, IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, bool constConstraint = true)
-				: base(model, algebraicModel, solver, provider, numIncrements)
+			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, bool constConstraint = true)
+				: base(algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;
@@ -295,7 +290,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				this.numOfIterations = numOfIterations;
 			}
 
-			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, ModelUpdater,
+			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, 
 					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, shape, constConstraint, numOfIterations);
 		}
 	}
