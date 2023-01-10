@@ -122,9 +122,13 @@ steps:
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
   inputs:
     command: 'test'
-    projects: '**/*[Tt]ests/*.csproj'
+    projects: |
+      D:\a\1\s\integrationTests\MSolve.Tests\tests\MGroup.FEM.Structural.Tests\MGroup.FEM.Structural.Tests.csproj
+      D:\a\1\s\integrationTests\MSolve.Tests\tests\MGroup.FEM.Thermal.Tests\MGroup.FEM.Thermal.Tests.csproj
+      D:\a\1\s\integrationTests\MSolve.Tests\tests\MGroup.FEM.ConvectionDiffusion.Tests\MGroup.FEM.ConvectionDiffusion.Tests.csproj
     arguments: '--configuration $(BuildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura'
     publishTestResults: true
+
 
 - task: PublishSymbols@2
   displayName: "Publish symbols to Azure Devops artifacts"
