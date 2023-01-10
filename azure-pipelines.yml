@@ -108,6 +108,14 @@ steps:
   displayName: Add Project NumericalAnalyzers to FEM.Thermal.Tests
   enabled: true
 
+- script: dotnet remove D:\a\1\s\integrationTests\MSolve.Tests\tests\MGroup.FEM.ConvectionDiffusion.Tests\MGroup.FEM.ConvectionDiffusion.Tests.csproj package MGroup.NumericalAnalyzers.Discretization
+  displayName: Remove Package NumericalAnalyzers from FEM.ConvectionDiffusion.Tests
+  enabled: true
+
+- script: dotnet add D:\a\1\s\integrationTests\MSolve.Tests\tests\MGroup.FEM.ConvectionDiffusion.Tests\MGroup.FEM.ConvectionDiffusion.Tests.csproj reference D:\a\1\s\integrationTests\NumericalAnalyzers\src\MGroup.NumericalAnalyzers.Discretization\MGroup.NumericalAnalyzers.Discretization.csproj
+  displayName: Add Project NumericalAnalyzers to FEM.ConvectionDiffusion.Tests
+  enabled: true
+
 - task: DotNetCoreCLI@2
   enabled: true
   displayName: Runs MSolve.Tests (master)
