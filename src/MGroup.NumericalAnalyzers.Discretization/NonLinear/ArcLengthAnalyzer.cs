@@ -40,6 +40,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		private double deltaS;
 		private double numOfIterations = 4;
 		private bool constConstraint = true;
+		private bool stopIfNotConverged = false;
 
 		/// <summary>
 		/// This class solves the linearized geometrically nonlinear system of equations according to the Arc Length incremental-iterative method.
@@ -54,14 +55,16 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="shape">Option for the shape of the constraint - 0 for cylindrical, 1 for spherical, intermediate values for elliptic (default : shape = 0)</param>
 		/// <param name="constConstraint">Option for constant radius of the constraint (default : constConstraint = 'true')</param>
 		/// <param name="numOfIterations">(only usefull for constConstraint = false) Number of expected iterations within a load increment (default : numOfIterations = 4)</param>
-		private ArcLengthAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance, double shape, bool constConstraint, int numOfIterations)
+		private ArcLengthAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, int maxIterationsPerIncrement, 
+			int numIterationsForMatrixRebuild, double residualTolerance, double shape, bool constConstraint, int numOfIterations, bool stopIfNotConverged)
 			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
 		{
 			this.shape = shape;
 			this.constConstraint = constConstraint;
 			this.numOfIterations = numOfIterations;
+			this.stopIfNotConverged = stopIfNotConverged;
+			this.analysisStatistics.AlgorithmName = "Arc length analyzer";
 		}
 
 		/// <summary>
@@ -69,6 +72,9 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// </summary>
 		public override void Solve()
 		{
+			bool notConverged = false;
+
+			analysisStatistics.NumIterationsRequired = 0;
 			InitializeLogs();
 			InitializeVectors();
 
@@ -85,6 +91,36 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				int iteration = 0;
 				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
 				{
+					analysisStatistics.NumIterationsRequired++;
+
+					if (iteration == maxIterationsPerIncrement - 1)
+					{
+						notConverged = true;
+						analysisStatistics.ResidualNormRatioEstimation = errorNorm;
+						if (stopIfNotConverged)
+						{
+							return;
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					if (double.IsNaN(errorNorm))
+					{
+						notConverged = true;
+						analysisStatistics.ResidualNormRatioEstimation = errorNorm;
+						if (stopIfNotConverged)
+						{
+							return;
+						}
+						else
+						{
+							break;
+						}
+					}
+
 					UpdateRhs(increment);
 					solver.Solve();
 					UpdateSolution(incrSolution);
@@ -158,6 +194,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						}
 						UpdateSolution(increment, iteration, curSolution);
 					}
+
 					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
 					double residualNormCurrent = UpdateResidualForcesAndNorm(internalRhsVector);
 					errorNorm = incrementalRhsNormInitial != 0 ? residualNormCurrent / incrementalRhsNormInitial : 0;// (rhsNorm*increment/increments) : 0;//TODOMaria this calculates the internal force vector and subtracts it from the external one (calculates the residual)
@@ -172,17 +209,18 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						IncrementalDisplacementsLog.StoreDisplacements(uPlusdu);
 					}
 
-					if (TotalDisplacementsPerIterationLog != null)
-					{
-						TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
-					}
-
 					if (errorNorm < residualTolerance)
 					{
+						if (analysisStatistics.ResidualNormRatioEstimation < errorNorm)
+						{
+							analysisStatistics.ResidualNormRatioEstimation = errorNorm;
+						}
+
 						if (IncrementalLog != null)
 						{
 							IncrementalLog.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu, internalRhsVector); //internalRhs
 						}
+
 						break;
 					}
 
@@ -191,16 +229,21 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						provider.Reset();
 						parentAnalyzer.BuildMatrices();
 					}
-
 				}
 
-				Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
+				if (TotalDisplacementsPerIterationLog != null)
+				{
+					TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
+				}
+
+				Debug.WriteLine("AL {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
 				previousIterations = iteration + 1;
 
 				prevIncrSolution = du.Copy();
 				SaveMaterialStateAndUpdateSolution();
 			}
 
+			analysisStatistics.HasConverged = !notConverged;
 			DateTime end = DateTime.Now;
 			StoreLogResults(start, end);
 		}
@@ -278,8 +321,10 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			private double shape;
 			private bool constConstraint;
 			private int numOfIterations;
+			private bool stopIfNotConverged = true;
 
-			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, bool constConstraint = true)
+			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, 
+				bool constConstraint = true, bool stopIfNotConverged = true)
 				: base(algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
@@ -288,10 +333,11 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				this.shape = shape;
 				this.constConstraint = constConstraint;
 				this.numOfIterations = numOfIterations;
+				this.stopIfNotConverged = stopIfNotConverged;
 			}
 
 			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, 
-					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, shape, constConstraint, numOfIterations);
+					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, shape, constConstraint, numOfIterations, stopIfNotConverged);
 		}
 	}
 }

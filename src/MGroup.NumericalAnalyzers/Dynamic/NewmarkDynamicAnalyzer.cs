@@ -9,6 +9,9 @@ using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.NumericalAnalyzers.Logging;
+using System.Linq;
+using MGroup.LinearAlgebra.Iterative;
+using System.Collections.Generic;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -69,6 +72,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector secondOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector secondOrderDerivativeComponentOfRhs;
 		private GenericAnalyzerState currentState;
+		private IList<IterativeStatistics> analysisStatistics;
 
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
@@ -113,6 +117,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			this.calculateInitialDerivativeVectors = calculateInitialDerivativeVectors;
+			this.analysisStatistics = Enumerable.Range(0, Steps).Select(x => new IterativeStatistics() { AlgorithmName = "Newmark dynamic analyzer" }).ToArray();
 		}
 
 		public IAnalysisWorkflowLog[] Logs => null;
@@ -126,6 +131,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		public int CurrentStep { get => currentStep; }
 
 		public int Steps { get => (int)(totalTime / timeStep); }
+
+		public IList<IterativeStatistics> AnalysisStatistics => analysisStatistics;
+
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
 			get => currentState;
@@ -247,6 +255,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			start = DateTime.Now;
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
+			analysisStatistics[currentStep] = ChildAnalyzer.AnalysisStatistics;
 			end = DateTime.Now;
 			Debug.WriteLine("Newmark elapsed time: {0}", end - start);
 		}

@@ -7,6 +7,7 @@ using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.DataStructures;
+using MGroup.LinearAlgebra.Iterative;
 
 namespace MGroup.NumericalAnalyzers.NonLinear
 {
@@ -32,6 +33,10 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected double globalRhsNormInitial;
 		protected INonLinearParentAnalyzer parentAnalyzer = null;
 		private GenericAnalyzerState currentState;
+		protected IterativeStatistics analysisStatistics = new IterativeStatistics()
+		{
+			AlgorithmName = "Non-linear analyzer",
+		};
 
 		public NonLinearAnalyzerBase(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
@@ -67,6 +72,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
+		public IterativeStatistics AnalysisStatistics => analysisStatistics;
+		
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
 			get => currentState;

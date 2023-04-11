@@ -15,6 +15,8 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 	/// </summary>
 	public class DisplacementControlAnalyzer : NonLinearAnalyzerBase
 	{
+		private bool stopIfNotConverged = false;
+
 		/// <summary>
 		/// This class solves the linearized geometrically nonlinear system of equations according to displacement control incremental-iterative method.
 		/// This only works if there are no nodal loads or any loading condition other than prescribed displacements.
@@ -28,10 +30,12 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
 		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
 		private DisplacementControlAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
+			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance, bool stopIfNotConverged)
 			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
 		{
+			this.stopIfNotConverged = stopIfNotConverged;
+			analysisStatistics.AlgorithmName = "Displacement control analyzer";
 		}
 
 		/// <summary>
@@ -39,6 +43,9 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// </summary>
 		public override void Solve()
 		{
+			bool notConverged = false;
+
+			analysisStatistics.NumIterationsRequired = 0;
 			InitializeLogs();
 
 			DateTime start = DateTime.Now;
@@ -53,6 +60,36 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				int iteration = 0;
 				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
 				{
+					analysisStatistics.NumIterationsRequired++;
+
+					if (iteration == maxIterationsPerIncrement - 1)
+					{
+						notConverged = true;
+						analysisStatistics.ResidualNormRatioEstimation = errorNorm;
+						if (stopIfNotConverged)
+						{
+							return;
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					if (double.IsNaN(errorNorm))
+					{
+						notConverged = true;
+						analysisStatistics.ResidualNormRatioEstimation = errorNorm;
+						if (stopIfNotConverged)
+						{
+							return;
+						}
+						else
+						{
+							break;
+						}
+					}
+
 					AddEquivalentNodalLoadsToRHS(increment, iteration);
 					solver.Solve();
 
@@ -64,17 +101,23 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						firstError = errorNorm;
 					}
 
-					if (TotalDisplacementsPerIterationLog != null)
+					if (IncrementalDisplacementsLog != null)
 					{
-						TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
+						IncrementalDisplacementsLog.StoreDisplacements(uPlusdu);
 					}
 
 					if (errorNorm < residualTolerance)
 					{
+						if (analysisStatistics.ResidualNormRatioEstimation < errorNorm)
+						{
+							analysisStatistics.ResidualNormRatioEstimation = errorNorm;
+						}
+
 						if (IncrementalLog != null)
 						{
 							IncrementalLog.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu, internalRhsVector);
 						}
+
 						break;
 					}
 
@@ -84,7 +127,13 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						parentAnalyzer.BuildMatrices();
 					}
 				}
-				Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
+
+				if (TotalDisplacementsPerIterationLog != null)
+				{
+					TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
+				}
+
+				Debug.WriteLine("DC {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
 				SaveMaterialStateAndUpdateSolution();
 			}
 
@@ -107,18 +156,21 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 
 		public class Builder : NonLinearAnalyzerBuilderBase
 		{
-			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements)
+			private bool stopIfNotConverged = true;
+
+			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, bool stopIfNotConverged = true)
 				: base(algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;
 				ResidualTolerance = 1E-3;
+				this.stopIfNotConverged = stopIfNotConverged;
 			}
 
 			public DisplacementControlAnalyzer Build()
 			{
 				return new DisplacementControlAnalyzer(algebraicModel, solver, provider, 
-					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
+					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, stopIfNotConverged);
 			}
 		}
 	}
