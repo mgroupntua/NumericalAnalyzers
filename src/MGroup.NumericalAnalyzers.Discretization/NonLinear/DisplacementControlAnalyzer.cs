@@ -94,7 +94,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					solver.Solve();
 
 					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
-					errorNorm = UpdateResidualForcesAndNorm(increment, internalRhsVector);
+					errorNorm = UpdateResidualForcesAndNorm(increment, iteration, internalRhsVector);
 
 					if (iteration == 0)
 					{

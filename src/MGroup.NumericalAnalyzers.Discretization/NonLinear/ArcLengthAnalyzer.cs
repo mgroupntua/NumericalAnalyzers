@@ -131,7 +131,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 
 					if (iteration == 0 && increment == 0)
 					{
-						deltaS = dlambda * Math.Sqrt((Math.Pow(shape, 2) * Math.Pow(lambda, 2) * rhs.DotProduct(rhs)) + incrSolution.DotProduct(incrSolution));
+						deltaS = dlambda * Math.Sqrt((Math.Pow(shape, 2) * Math.Pow(lambda, 2) * rhsIncrement.DotProduct(rhsIncrement)) + incrSolution.DotProduct(incrSolution));
 						curSolution = incrSolution.Scale(dlambda);
 						UpdateSolution(increment, iteration, curSolution);
 					}
@@ -151,7 +151,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 							sign = -1;
 						}
 
-						dlambda = sign * deltaS / Math.Sqrt((Math.Pow(shape, 2) * Math.Pow(lambda, 2) * rhs.DotProduct(rhs)) + incrSolution.DotProduct(incrSolution));
+						dlambda = sign * deltaS / Math.Sqrt((Math.Pow(shape, 2) * Math.Pow(lambda, 2) * rhsIncrement.DotProduct(rhsIncrement)) + incrSolution.DotProduct(incrSolution));
 						lambda += dlambda;
 						curSolution = resSolution.Axpy(incrSolution, dlambda);
 						UpdateSolution(increment, iteration, curSolution);
@@ -290,7 +290,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		{
 			globalRhs.Clear();
 			solver.LinearSystem.RhsVector.Clear();
-			solver.LinearSystem.RhsVector.AddIntoThis(rhs.Scale(lambda));
+			solver.LinearSystem.RhsVector.AddIntoThis(rhsIncrement.Scale(lambda));
 			solver.LinearSystem.RhsVector.SubtractIntoThis(internalRhsVector);
 			rhsResidual = solver.LinearSystem.RhsVector.Copy();
 
@@ -311,9 +311,9 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			prevIncrSolution = algebraicModel.CreateZeroVector();
 			polynomialSolution = algebraicModel.CreateZeroVector();
 			rhsResidual = algebraicModel.CreateZeroVector();
-			rhsResidual.CopyFrom(rhs);
+			rhsResidual.CopyFrom(rhsIncrement);
 			globalRhs = algebraicModel.CreateZeroVector();
-			incrementalRhsNormInitial = provider.CalculateRhsNorm(rhs);
+			incrementalRhsNormInitial = provider.CalculateRhsNorm(rhsIncrement);
 		}
 
 		public class Builder : NonLinearAnalyzerBuilderBase

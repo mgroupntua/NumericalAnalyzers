@@ -90,7 +90,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 
 					solver.Solve();
 					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
-					double residualNormCurrent = UpdateResidualForcesAndNorm(increment, internalRhsVector);
+					double residualNormCurrent = UpdateResidualForcesAndNorm(increment, iteration, internalRhsVector);
 					errorNorm = globalRhsNormInitial != 0 ? residualNormCurrent / globalRhsNormInitial : 0;
 
 					if (iteration == 0)

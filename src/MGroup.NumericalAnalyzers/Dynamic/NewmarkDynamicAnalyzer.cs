@@ -31,6 +31,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		private readonly double beta;
 		private readonly bool calculateInitialDerivativeVectors = true;
+		private TransientAnalysisPhase analysisPhase = TransientAnalysisPhase.InitialConditionEvaluation;
 
 		/// <summary>
 		/// This class makes the appropriate arrangements for the solution of linear dynamic equations
@@ -84,6 +85,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized</param>
 		/// <param name="alpha">Instance of parameter "alpha" of the method that will be initialized</param>
 		/// <param name="delta">Instance of parameter "delta" of the method that will be initialized</param>
+		/// <param name="currentStep">Starts the analysis from step equal to this parameter</param>
+		/// <param name="calculateInitialDerivativeVectors">Set to false to skip initial condition calculation based on initial values (default is true)</param>
 		private NewmarkDynamicAnalyzer(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta, int currentStep, bool calculateInitialDerivativeVectors)
 		{
@@ -158,6 +161,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 		}
 
+		private void SetAnalysisPhase(TransientAnalysisPhase phase)
+		{
+			analysisPhase = phase;
+			provider.SetTransientAnalysisPhase(phase);
+		}
+
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
 		/// </summary>
@@ -171,11 +180,17 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		}
 
 		/// <summary>
-		/// Calculates inertia forces and damping forces.
+		/// Calculates equivalent right-hand side for first- and second-order time derivatives for use in non-linear solvers.
+		/// Returns zero vector if transient analysis phase is TransientAnalysisPhase.InitialConditionEvaluation.
 		/// </summary>
 		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
 			var result = algebraicModel.CreateZeroVector();
+			if (analysisPhase == TransientAnalysisPhase.InitialConditionEvaluation)
+			{
+				return result;
+			}
+
 			provider.GetMatrix(DifferentiationOrder.Second).MultiplyVector(currentSolution, result);
 			var temp = algebraicModel.CreateZeroVector();
 			provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(currentSolution, temp);
@@ -191,7 +206,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				return;
 			}
 
-			provider.SetTransientAnalysisPhase(TransientAnalysisPhase.InitialConditionEvaluation);
+			SetAnalysisPhase(TransientAnalysisPhase.InitialConditionEvaluation);
 			var rhsFromDerivatives = algebraicModel.CreateZeroVector();
 			var temp = algebraicModel.CreateZeroVector();
 			for (int i = 0; i < (int)provider.ProblemOrder - 1; i++)
@@ -217,7 +232,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		}
 
 		/// <summary>
-		/// Initializes the models, the solvers, child analyzers, builds the matrices, assigns loads and initializes right-hand-side vectors.
+		/// Initializes the models, the solvers, child analyzers, builds the matrices, solves for initial values and initializes right-hand-side vectors.
 		/// </summary>
 		public void Initialize(bool isFirstAnalysis = true)
 		{
@@ -242,7 +257,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveCurrentTimestep()
 		{
-			provider.SetTransientAnalysisPhase(TransientAnalysisPhase.Solution);
+			SetAnalysisPhase(TransientAnalysisPhase.Solution);
 			Debug.WriteLine("Newmark step: {0}", currentStep);
 
 			AddHigherOrderContributions(currentStep * timeStep);
@@ -261,7 +276,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		}
 
 		/// <summary>
-		/// Solves the linear system of equations by calling the corresponding method of the specific solver attached during construction of the current instance
+		/// Perform the transient analysis by employing the assigned child analyzer for every timestep.
 		/// </summary>
 		public void Solve()
 		{
