@@ -9,8 +9,10 @@ using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.NumericalAnalyzers.Logging;
-using System.Collections.Generic;
+using System.Collections;
 using MGroup.LinearAlgebra.Iterative;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -39,6 +41,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private int currentStep;
 		private DateTime start, end;
 		private GenericAnalyzerState currentState;
+		private IList<IterativeStatistics> analysisStatistics;
 
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem.
@@ -58,6 +61,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			this.totalTime = totalTime;
 			this.currentStep = currentStep;
 			this.ChildAnalyzer.ParentAnalyzer = this;
+			this.analysisStatistics = Enumerable.Range(0, Steps).Select(x => new IterativeStatistics() { AlgorithmName = "Pseudo-transient analyzer" }).ToArray();
 		}
 
 		public IAnalysisWorkflowLog[] Logs => null;
@@ -86,7 +90,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 		}
 
-		public IList<IterativeStatistics> AnalysisStatistics => throw new NotImplementedException();
+		public IList<IterativeStatistics> AnalysisStatistics => analysisStatistics;
 
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
@@ -137,6 +141,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			start = DateTime.Now;
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
+			analysisStatistics[currentStep] = ChildAnalyzer.AnalysisStatistics;
 			end = DateTime.Now;
 			Debug.WriteLine("Pseudo-Transient Analyzer elapsed time: {0}", end - start);
 		}

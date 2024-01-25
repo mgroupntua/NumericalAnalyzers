@@ -20,6 +20,10 @@ namespace MGroup.NumericalAnalyzers
 		//private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
 		private readonly INonTransientAnalysisProvider provider;
+		private readonly IList<IterativeStatistics> analysisStatistics = new[]
+		{
+			new IterativeStatistics() { AlgorithmName = "Static analyzer" },
+		};
 
 		/// <summary>
 		/// This class defines the static analyzer.
@@ -51,7 +55,7 @@ namespace MGroup.NumericalAnalyzers
 			}
 		}
 
-		public IList<IterativeStatistics> AnalysisStatistics => throw new NotImplementedException();
+		public IList<IterativeStatistics> AnalysisStatistics => analysisStatistics;
 
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{
@@ -109,6 +113,7 @@ namespace MGroup.NumericalAnalyzers
 			IGlobalVector rhsVector = provider.GetRhs();
 			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.AddIntoThis(rhsVector);
 			ChildAnalyzer.Solve();
+			AnalysisStatistics[0] = ChildAnalyzer.AnalysisStatistics;
 		}
 	}
 }

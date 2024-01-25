@@ -1,6 +1,10 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
+using MGroup.LinearAlgebra.Iterative;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.DataStructures;
@@ -15,6 +19,8 @@ namespace MGroup.NumericalAnalyzers.Staggered
 	{
 		protected int maxStaggeredSteps;
 		protected double tolerance;
+		protected IterativeStatistics analysisStatistics = new IterativeStatistics() { AlgorithmName = "Base staggered analyzer" };
+		protected List<IList<IList<IterativeStatistics>>> nestedAnalysisStatistics = new List<IList<IList<IterativeStatistics>>>();
 		protected IParentAnalyzer[] analyzers;
 		protected ISolver[] solvers;
 		protected CreateNewModelDelegate CreateNewModel;
@@ -22,6 +28,10 @@ namespace MGroup.NumericalAnalyzers.Staggered
 		protected GenericAnalyzerState[] analyzerStates;
 
 		public IAnalysisWorkflowLog[] Logs { get; set; }
+
+		public IterativeStatistics AnalysisStatistics => analysisStatistics;
+
+		public IList<IList<IList<IterativeStatistics>>> NestedAnalysisStatistics => nestedAnalysisStatistics;
 
 		public IGlobalVector CurrentAnalysisResult { get => throw new NotSupportedException("Staggered analyzer has more than one nested analyzers. Use CurrentAnalysisResult of each individual nested analyzer"); }
 
@@ -70,6 +80,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 			{
 				Debug.WriteLine("\n\nStaggered step: {0}", staggeredStep);
 				previousSolutionNorm = solutionNorm;
+				var currentStatistics = new IList<IterativeStatistics>[analyzers.Length];
 
 				for (int i = 0; i < solvers.Length; i++)
 				{
@@ -79,8 +90,11 @@ namespace MGroup.NumericalAnalyzers.Staggered
 					}
 
 					solveMethods()[i]();
+
+					currentStatistics[i] = analyzers[i].AnalysisStatistics.ToArray();
 				}
 
+				nestedAnalysisStatistics.Add(currentStatistics);
 				solutionNorm = 0;
 				for (int i = 0; i < solvers.Length; i++)
 				{
@@ -97,6 +111,10 @@ namespace MGroup.NumericalAnalyzers.Staggered
 				}
 			}
 			while (staggeredStep < maxStaggeredSteps && error > tolerance);
+
+			analysisStatistics.NumIterationsRequired = staggeredStep;
+			analysisStatistics.ResidualNormRatioEstimation = error;
+			analysisStatistics.HasConverged = staggeredStep < maxStaggeredSteps;
 		}
 
 		public abstract void Solve();

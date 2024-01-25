@@ -9,12 +9,9 @@ using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.NumericalAnalyzers.Logging;
-using MGroup.LinearAlgebra;
-using MGroup.Solvers.AlgebraicModel;
-using MGroup.LinearAlgebra.Matrices;
-using MGroup.LinearAlgebra.Vectors;
-using System.Collections.Generic;
+using System.Linq;
 using MGroup.LinearAlgebra.Iterative;
+using System.Collections.Generic;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -34,6 +31,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		private readonly double beta;
 		private readonly bool calculateInitialDerivativeVectors = true;
+		private TransientAnalysisPhase analysisPhase = TransientAnalysisPhase.InitialConditionEvaluation;
 
 		/// <summary>
 		/// This class makes the appropriate arrangements for the solution of linear dynamic equations
@@ -75,8 +73,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private IGlobalVector secondOrderDerivativeOfSolutionForRhs;
 		private IGlobalVector secondOrderDerivativeComponentOfRhs;
 		private GenericAnalyzerState currentState;
+		private IList<IterativeStatistics> analysisStatistics;
 
-		private double[] systemKineticEnergies;
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
 		/// </summary>
@@ -87,6 +85,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <param name="totalTime">Instance of the total time of the method that will be initialized</param>
 		/// <param name="alpha">Instance of parameter "alpha" of the method that will be initialized</param>
 		/// <param name="delta">Instance of parameter "delta" of the method that will be initialized</param>
+		/// <param name="currentStep">Starts the analysis from step equal to this parameter</param>
+		/// <param name="calculateInitialDerivativeVectors">Set to false to skip initial condition calculation based on initial values (default is true)</param>
 		private NewmarkDynamicAnalyzer(IAlgebraicModel algebraicModel, ITransientAnalysisProvider provider,
 			IChildAnalyzer childAnalyzer, double timeStep, double totalTime, double alpha, double delta, int currentStep, bool calculateInitialDerivativeVectors)
 		{
@@ -120,6 +120,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 
 			this.calculateInitialDerivativeVectors = calculateInitialDerivativeVectors;
+			this.analysisStatistics = Enumerable.Range(0, Steps).Select(x => new IterativeStatistics() { AlgorithmName = "Newmark dynamic analyzer" }).ToArray();
 		}
 
 		public IAnalysisWorkflowLog[] Logs => null;
@@ -133,6 +134,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		public int CurrentStep { get => currentStep; }
 
 		public int Steps { get => (int)(totalTime / timeStep); }
+
+		public IList<IterativeStatistics> AnalysisStatistics => analysisStatistics;
+
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
 			get => currentState;
@@ -157,7 +161,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 		}
 
-		public IList<IterativeStatistics> AnalysisStatistics => throw new NotImplementedException();
+		private void SetAnalysisPhase(TransientAnalysisPhase phase)
+		{
+			analysisPhase = phase;
+			provider.SetTransientAnalysisPhase(phase);
+		}
 
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
@@ -172,11 +180,17 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		}
 
 		/// <summary>
-		/// Calculates inertia forces and damping forces.
+		/// Calculates equivalent right-hand side for first- and second-order time derivatives for use in non-linear solvers.
+		/// Returns zero vector if transient analysis phase is TransientAnalysisPhase.InitialConditionEvaluation.
 		/// </summary>
 		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
 		{
 			var result = algebraicModel.CreateZeroVector();
+			if (analysisPhase == TransientAnalysisPhase.InitialConditionEvaluation)
+			{
+				return result;
+			}
+
 			provider.GetMatrix(DifferentiationOrder.Second).MultiplyVector(currentSolution, result);
 			var temp = algebraicModel.CreateZeroVector();
 			provider.GetMatrix(DifferentiationOrder.First).MultiplyVector(currentSolution, temp);
@@ -192,7 +206,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				return;
 			}
 
-			provider.SetTransientAnalysisPhase(TransientAnalysisPhase.InitialConditionEvaluation);
+			SetAnalysisPhase(TransientAnalysisPhase.InitialConditionEvaluation);
 			var rhsFromDerivatives = algebraicModel.CreateZeroVector();
 			var temp = algebraicModel.CreateZeroVector();
 			for (int i = 0; i < (int)provider.ProblemOrder - 1; i++)
@@ -218,7 +232,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		}
 
 		/// <summary>
-		/// Initializes the models, the solvers, child analyzers, builds the matrices, assigns loads and initializes right-hand-side vectors.
+		/// Initializes the models, the solvers, child analyzers, builds the matrices, solves for initial values and initializes right-hand-side vectors.
 		/// </summary>
 		public void Initialize(bool isFirstAnalysis = true)
 		{
@@ -243,7 +257,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		private void SolveCurrentTimestep()
 		{
-			provider.SetTransientAnalysisPhase(TransientAnalysisPhase.Solution);
+			SetAnalysisPhase(TransientAnalysisPhase.Solution);
 			Debug.WriteLine("Newmark step: {0}", currentStep);
 
 			AddHigherOrderContributions(currentStep * timeStep);
@@ -255,102 +269,22 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 			start = DateTime.Now;
 			ChildAnalyzer.Initialize(false);
-			//var velocitiesDataToExport = ((GlobalAlgebraicModel<SymmetricCscMatrix>)algebraicModel).ExtractAllResults(currentState.StateVectors["First order derivative of solution"]).Data;
-			//var velocitiesVec = new double[velocitiesDataToExport.NumEntries];
-			//var inc = 0;
-			//foreach (var e in velocitiesDataToExport)
-			//{
-			//	velocitiesVec[inc] = e.val;
-			//	inc += 1;
-			//}
-			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(velocitiesVec, $@"C:\Users\Public\Documents\MSolve_output\VelocityVectorTimeStep{AnalysisState.newmarkIncrementNumber}.txt");
-			systemKineticEnergies[AnalysisState.newmarkIncrementNumber] = CalculateKineticEnergy(provider.GetMatrix(DifferentiationOrder.Second), currentState.StateVectors["First order derivative of solution"]);
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(systemKineticEnergies, $@"C:\Users\Public\Documents\MSolve_output\VelocityVectorTimeStep{AnalysisState.newmarkIncrementNumber}.txt");
 			ChildAnalyzer.Solve();
-			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(AnalysisState.exportEqStrainFromIntegrPoints, $@"C:\Users\Public\Documents\MSolve_output\eqStrainFromIntegrPoints{AnalysisState.newmarkIncrementNumber}.txt");
+			analysisStatistics[currentStep] = ChildAnalyzer.AnalysisStatistics;
 			end = DateTime.Now;
 			Debug.WriteLine("Newmark elapsed time: {0}", end - start);
-			double[] maxStrainsVec = new double[]
-			{
-				StrainLimitState.exMax,
-				StrainLimitState.eyMax,
-				StrainLimitState.ezMax,
-				StrainLimitState.gxyMax,
-				StrainLimitState.gxzMax,
-				StrainLimitState.gyzMax
-			};
-
-			double[] minStrainsVec = new double[]
-			{
-				StrainLimitState.exMin,
-				StrainLimitState.eyMin,
-				StrainLimitState.ezMin,
-				StrainLimitState.gxyMin,
-				StrainLimitState.gxzMin,
-				StrainLimitState.gyzMin
-			};
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(maxStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMaxComponents{AnalysisState.newmarkIncrementNumber}.txt");
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(minStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMinComponents{AnalysisState.newmarkIncrementNumber}.txt");
-		}
-
-		public static double CalculateKineticEnergy(IGlobalMatrix mass, IGlobalVector v)
-		{
-			IGlobalVector outVector = v.Copy();
-			outVector.Clear();
-			mass.MultiplyVector(v,outVector);
-			var ke = 0.50 * v.DotProduct(outVector);
-			return ke;
 		}
 
 		/// <summary>
-		/// Solves the linear system of equations by calling the corresponding method of the specific solver attached during construction of the current instance
+		/// Perform the transient analysis by employing the assigned child analyzer for every timestep.
 		/// </summary>
 		public void Solve()
 		{
-			systemKineticEnergies = new double[Steps];
-			//AnalysisState.exportEqStrainFromIntegrPoints = new double[14080];
-			StrainLimitState.exMax = 0d;
-			StrainLimitState.eyMax = 0d;
-			StrainLimitState.ezMax = 0d;
-			StrainLimitState.gxyMax = 0d;
-			StrainLimitState.gxzMax = 0d;
-			StrainLimitState.gyzMax = 0d;
-			StrainLimitState.exMin = 0d;
-			StrainLimitState.eyMin = 0d;
-			StrainLimitState.ezMin = 0d;
-			StrainLimitState.gxyMin = 0d;
-			StrainLimitState.gxzMin = 0d;
-			StrainLimitState.gyzMin = 0d;
 			for (int i = 0; i < Steps; ++i)
 			{
-				AnalysisState.newmarkIncrementNumber = i;
-				AnalysisState.exportConsitutiveMatrix = false;
 				SolveCurrentTimestep();
 				AdvanceStep();
 			}
-
-			//double[] maxStrainsVec = new double[]
-			//{
-			//	StrainLimitState.exMax,
-			//	StrainLimitState.eyMax,
-			//	StrainLimitState.ezMax,
-			//	StrainLimitState.gxyMax,
-			//	StrainLimitState.gxzMax,
-			//	StrainLimitState.gyzMax
-			//};
-
-			//double[] minStrainsVec = new double[]
-			//{
-			//	StrainLimitState.exMin,
-			//	StrainLimitState.eyMin,
-			//	StrainLimitState.ezMin,
-			//	StrainLimitState.gxyMin,
-			//	StrainLimitState.gxzMin,
-			//	StrainLimitState.gyzMin
-			//};
-			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(maxStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMaxComponents.txt");
-			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(minStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMinComponents.txt");
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(systemKineticEnergies, $@"C:\Users\Public\Documents\MSolve_output\kineticEnergy.txt");
 		}
 
 		/// <summary>
@@ -444,16 +378,15 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			zeroOrderDerivativeSolutionOfPreviousStep.CopyFrom(solutions[0]);
 			solutions[0].CopyFrom(ChildAnalyzer.CurrentAnalysisResult);
-			
-				var secondOrderDerivativeOfSolutionOfPreviousStep = solutions[(int)DifferentiationOrder.Second].Copy();
 
-				solutions[(int)DifferentiationOrder.Second] = solutions[0].Subtract(zeroOrderDerivativeSolutionOfPreviousStep);
-				solutions[(int)DifferentiationOrder.Second].LinearCombinationIntoThis(a0, solutions[(int)DifferentiationOrder.First], -a2);
-				solutions[(int)DifferentiationOrder.Second].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
+			var secondOrderDerivativeOfSolutionOfPreviousStep = solutions[(int)DifferentiationOrder.Second].Copy();
 
-				solutions[(int)DifferentiationOrder.First].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
-				solutions[(int)DifferentiationOrder.First].AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a7);
-			
+			solutions[(int)DifferentiationOrder.Second] = solutions[0].Subtract(zeroOrderDerivativeSolutionOfPreviousStep);
+			solutions[(int)DifferentiationOrder.Second].LinearCombinationIntoThis(a0, solutions[(int)DifferentiationOrder.First], -a2);
+			solutions[(int)DifferentiationOrder.Second].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, -a3);
+
+			solutions[(int)DifferentiationOrder.First].AxpyIntoThis(secondOrderDerivativeOfSolutionOfPreviousStep, a6);
+			solutions[(int)DifferentiationOrder.First].AxpyIntoThis(solutions[(int)DifferentiationOrder.Second], a7);
 		}
 
 		GenericAnalyzerState CreateState()

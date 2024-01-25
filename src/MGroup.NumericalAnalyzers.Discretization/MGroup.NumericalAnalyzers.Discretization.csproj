@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -16,15 +16,13 @@
     <None Remove="Microsoft.SourceLink.GitHub" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MGroup.MachineLearning" Version="0.2.0-unstable.32" />
-    <PackageReference Include="MGroup.MachineLearning.TensorFlow" Version="0.2.0-unstable.32" />
+    <PackageReference Include="MGroup.LinearAlgebra" Version="0.1.0-unstable.79" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\LinearAlgebra\src\MGroup.LinearAlgebra\MGroup.LinearAlgebra.csproj" />
     <ProjectReference Include="..\MGroup.NumericalAnalyzers\MGroup.NumericalAnalyzers.csproj" />
   </ItemGroup>
 </Project>
