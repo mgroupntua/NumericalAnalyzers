@@ -7,6 +7,8 @@ using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.DataStructures;
+using MGroup.LinearAlgebra.Matrices;
+using MGroup.LinearAlgebra;
 using MGroup.LinearAlgebra.Iterative;
 
 namespace MGroup.NumericalAnalyzers.NonLinear
@@ -15,10 +17,9 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 	/// <summary>
 	/// This class represents the base class of all nonlinear anaylsers and contains the basic information necessary for other analyzers
 	/// </summary>
-	public abstract class NonLinearAnalyzerBase : IChildAnalyzer
+	public abstract class NonLinearAnalyzerWithTrialsBase : IChildAnalyzer
 	{
 		private const string CURRENTSOLUTION = "Current solution";
-		private const string LASTRHS = "Last RHS";
 
 		protected readonly int maxIterationsPerIncrement;
 		protected readonly IAlgebraicModel algebraicModel;
@@ -27,20 +28,21 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected readonly INonLinearProvider provider;
 		protected readonly double residualTolerance;
 		protected readonly ISolver solver;
-		protected IGlobalVector rhsIncrement;
-		protected IGlobalVector lastRhs;
+		protected IGlobalVector rhs;
 		protected IGlobalVector u;
 		protected IGlobalVector du;
 		protected IGlobalVector uPlusdu;
+		// added for trial solutions for calculation of du with minimum residual
+		protected IGlobalVector copiedRHS;
+		protected IGlobalVector uCopy;
+		protected IGlobalVector duCopy;
+		protected IGlobalVector uPlusduCopy;
+		//added for trial solutions for calculation of du with minimum residual
 		protected double globalRhsNormInitial;
 		protected INonLinearParentAnalyzer parentAnalyzer = null;
 		private GenericAnalyzerState currentState;
-		protected IterativeStatistics analysisStatistics = new IterativeStatistics()
-		{
-			AlgorithmName = "Non-linear analyzer",
-		};
 
-		public NonLinearAnalyzerBase(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
+		public NonLinearAnalyzerWithTrialsBase(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
 			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
 		{
 			this.algebraicModel = algebraicModel;
@@ -74,8 +76,6 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
-		public IterativeStatistics AnalysisStatistics => analysisStatistics;
-
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
 			get => currentState;
@@ -83,22 +83,22 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			{
 				currentState = value;
 				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
-				currentState.StateVectors[LASTRHS].CheckForCompatibility = false;
 
 				u.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
-				lastRhs.CopyFrom(currentState.StateVectors[LASTRHS]);
 
-				currentState.StateVectors[LASTRHS].CheckForCompatibility = true;
 				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
 			}
 		}
+
+		public IterativeStatistics AnalysisStatistics => throw new NotImplementedException();
+
+		//public IGlobalVector CurrentAnalysisLinearSystemRhs => throw new NotImplementedException();
 
 		GenericAnalyzerState CreateState()
 		{
 			currentState = new GenericAnalyzerState(this, new[]
 			{
 				(CURRENTSOLUTION, u),
-				(LASTRHS, lastRhs),
 			});
 
 			return currentState;
@@ -145,14 +145,14 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			return internalRhs;
 		}
 
-		protected double UpdateResidualForcesAndNorm(int currentIncrement, int iteration, IGlobalVector internalRhs)
+		protected double UpdateResidualForcesAndNormForTrials(int currentIncrement, IGlobalVector internalRhs)
 		{
-			if (iteration == 0)
+			solver.LinearSystem.RhsVector.Clear();
+			for (int j = 0; j <= currentIncrement; j++)
 			{
-				lastRhs.AddIntoThis(solver.LinearSystem.RhsVector);
+				solver.LinearSystem.RhsVector.AddIntoThis(rhs);
 			}
 
-			solver.LinearSystem.RhsVector.CopyFrom(lastRhs);
 			solver.LinearSystem.RhsVector.SubtractIntoThis(internalRhs);
 			return provider.CalculateRhsNorm(solver.LinearSystem.RhsVector);
 		}
@@ -164,30 +164,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		protected virtual void InitializeInternalVectors(bool isFirstAnalysis)
 		{
-			if (lastRhs == null)
-			{
-				lastRhs = algebraicModel.CreateZeroVector();
-			}
-			else
-			{
-				if (isFirstAnalysis)
-				{
-					lastRhs.Clear();
-				}
-			}
-
-			if (rhsIncrement == null)
-			{
-				rhsIncrement = algebraicModel.CreateZeroVector();
-			}
-			else
-			{
-				if (isFirstAnalysis)
-				{
-					rhsIncrement.Clear();
-				}
-			}
-
+			rhs = solver.LinearSystem.RhsVector.Copy();
+			rhs.ScaleIntoThis(1 / (double)numIncrements);
 			if (u == null)
 			{
 				u = algebraicModel.CreateZeroVector();
@@ -217,6 +195,39 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			{
 				uPlusdu.Clear();
 			}
+			if (uCopy == null)
+			{
+				uCopy = algebraicModel.CreateZeroVector();
+			}
+			else
+			{
+				if (isFirstAnalysis)
+				{
+					uCopy.Clear();
+				}
+			}
+
+			if (duCopy == null)
+			{
+				duCopy = algebraicModel.CreateZeroVector();
+			}
+			else
+			{
+				duCopy.Clear();
+			}
+
+			if (uPlusduCopy == null)
+			{
+				uPlusduCopy = algebraicModel.CreateZeroVector();
+			}
+			else
+			{
+				uPlusduCopy.Clear();
+			}
+			//u = algebraicModel.CreateZeroVector();
+			//du = algebraicModel.CreateZeroVector();
+			//uPlusdu = algebraicModel.CreateZeroVector();
+			globalRhsNormInitial = provider.CalculateRhsNorm(solver.LinearSystem.RhsVector);
 		}
 
 		protected void InitializeLogs()
@@ -249,16 +260,65 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		protected void UpdateInternalVectors()
 		{
-			rhsIncrement = solver.LinearSystem.RhsVector.Subtract(lastRhs);
-			rhsIncrement.ScaleIntoThis(1 / (double)numIncrements);
+			rhs = solver.LinearSystem.RhsVector.Copy();
+			rhs.ScaleIntoThis(1 / (double)numIncrements);
 			globalRhsNormInitial = provider.CalculateRhsNorm(solver.LinearSystem.RhsVector);
 		}
 
-		protected virtual void UpdateRhs(int step)
+		protected void UpdateRhs(int step)
 		{
-			solver.LinearSystem.RhsVector.CopyFrom(rhsIncrement);
+			solver.LinearSystem.RhsVector.CopyFrom(rhs);
 		}
 
+		public void StoreSystemSolutionState()
+		{
+			duCopy.Clear();
+			uPlusduCopy.Clear();
+			uCopy.Clear();
+			duCopy.AddIntoThis(du);
+			uPlusduCopy.AddIntoThis(uPlusdu);
+			uCopy.AddIntoThis(u);
+		}
+
+		public void RestoreSystemSolutionState()
+		{
+			du.Clear();
+			uPlusdu.Clear();
+			u.Clear();
+			du.AddIntoThis(duCopy);
+			uPlusdu.AddIntoThis(uPlusduCopy);
+			u.AddIntoThis(uCopy);
+		}
+
+		protected IGlobalVector CalculateInternalTrialRHS(int currentIncrement, int iteration, double trialSize)
+		{
+			if (currentIncrement == 0 && iteration == 0)
+			{
+				du.Clear();
+				uPlusdu.Clear();
+				du.AddIntoThis(solver.LinearSystem.Solution.Scale(trialSize));
+				uPlusdu.AddIntoThis(solver.LinearSystem.Solution.Scale(trialSize));
+				du.SubtractIntoThis(u);
+			}
+			else
+			{
+				du.AddIntoThis(solver.LinearSystem.Solution.Scale(trialSize));
+				uPlusdu.Clear();
+				uPlusdu.AddIntoThis(u);
+				uPlusdu.AddIntoThis(du);
+			}
+
+			IGlobalVector internalTrialRhs = provider.CalculateResponseIntegralVector(uPlusdu);
+			provider.ProcessInternalRhs(uPlusdu, internalTrialRhs);
+
+			if (parentAnalyzer != null)
+			{
+				IGlobalVector otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
+				internalTrialRhs.AddIntoThis(otherRhsComponents);
+			}
+
+			return internalTrialRhs;
+		}
 		/// <summary>
 		/// This class solves system and calculates the displacements vector.
 		/// </summary>

@@ -55,7 +55,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="shape">Option for the shape of the constraint - 0 for cylindrical, 1 for spherical, intermediate values for elliptic (default : shape = 0)</param>
 		/// <param name="constConstraint">Option for constant radius of the constraint (default : constConstraint = 'true')</param>
 		/// <param name="numOfIterations">(only usefull for constConstraint = false) Number of expected iterations within a load increment (default : numOfIterations = 4)</param>
-		private ArcLengthAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, int maxIterationsPerIncrement, 
+		private ArcLengthAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, int maxIterationsPerIncrement,
 			int numIterationsForMatrixRebuild, double residualTolerance, double shape, bool constConstraint, int numOfIterations, bool stopIfNotConverged)
 			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
@@ -323,7 +323,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			private int numOfIterations;
 			private bool stopIfNotConverged = true;
 
-			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4, 
+			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, double shape = 0, int numOfIterations = 4,
 				bool constConstraint = true, bool stopIfNotConverged = true)
 				: base(algebraicModel, solver, provider, numIncrements)
 			{
@@ -336,7 +336,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				this.stopIfNotConverged = stopIfNotConverged;
 			}
 
-			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider, 
+			public ArcLengthAnalyzer Build() => new ArcLengthAnalyzer(algebraicModel, solver, provider,
 					numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, shape, constConstraint, numOfIterations, stopIfNotConverged);
 		}
 	}

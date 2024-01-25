@@ -11,10 +11,8 @@ using MGroup.LinearAlgebra;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
-	public class LoadControlAnalyzer : NonLinearAnalyzerBase
+	public class LoadControlAnalyzerWithTrialsForResidualEvaluation : NonLinearAnalyzerWithTrialsBase
 	{
-		private bool stopIfNotConverged = false;
-
 		/// <summary>
 		/// This class solves the linearized geoemtrically nonlinear system of equations according to Newton-Raphson's load control incremental-iterative method.
 		/// </summary>
@@ -26,14 +24,11 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// <param name="maxIterationsPerIncrement">Number of maximum iterations within a load increment</param>
 		/// <param name="numIterationsForMatrixRebuild">Number of iterations for the rebuild of the siffness matrix within a load increment</param>
 		/// <param name="residualTolerance">Tolerance for the convergence criterion of the residual forces</param>
-		private LoadControlAnalyzer(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
-			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance, bool stopIfNotConverged)
+		private LoadControlAnalyzerWithTrialsForResidualEvaluation(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider,
+			int numIncrements, int maxIterationsPerIncrement, int numIterationsForMatrixRebuild, double residualTolerance)
 			: base(algebraicModel, solver, provider, numIncrements, maxIterationsPerIncrement,
 				numIterationsForMatrixRebuild, residualTolerance)
-		{
-			this.stopIfNotConverged = stopIfNotConverged;
-			analysisStatistics.AlgorithmName = "Load control analyzer";
-		}
+		{ }
 
 
 		/// <summary>
@@ -41,9 +36,6 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 		/// </summary>
 		public override void Solve()
 		{
-			bool notConverged = false;
-
-			analysisStatistics.NumIterationsRequired = 0;
 			InitializeLogs();
 
 			DateTime start = DateTime.Now;
@@ -58,39 +50,40 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				int iteration = 0;
 				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
 				{
-					analysisStatistics.NumIterationsRequired++;
-
 					if (iteration == maxIterationsPerIncrement - 1)
 					{
-						notConverged = true;
-						analysisStatistics.ResidualNormRatioEstimation = errorNorm;
-						if (stopIfNotConverged)
-						{
-							return;
-						}
-						else
-						{
-							break;
-						}
+						return;
 					}
 
 					if (double.IsNaN(errorNorm))
 					{
-						notConverged = true;
-						analysisStatistics.ResidualNormRatioEstimation = errorNorm;
-						if (stopIfNotConverged)
-						{
-							return;
-						}
-						else
-						{
-							break;
-						}
+						return;
 					}
 
 					solver.Solve();
-					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
-					double residualNormCurrent = UpdateResidualForcesAndNorm(increment, iteration, internalRhsVector);
+					StoreSystemSolutionState();
+					int nTrials = 4; int ratio = 4; double[] trialErrors = new double[nTrials]; double trialSize = (double)1 / ratio;
+					for (int i1 = 0; i1 < nTrials; i1++)
+					{
+						var trialInternalRhsVector = CalculateInternalTrialRHS(increment, iteration, (i1 + 1) * trialSize);
+						trialErrors[i1] = globalRhsNormInitial != 0 ? UpdateResidualForcesAndNormForTrials(increment, trialInternalRhsVector) / globalRhsNormInitial : 0;
+						RestoreSystemSolutionState();
+					}
+					int minErrorTrialNo = 0;
+					double minErrorTrialValue = trialErrors[0];
+					for (int i1 = 1; i1 < nTrials; i1++)
+					{
+						if (trialErrors[i1] < minErrorTrialValue)
+						{
+							minErrorTrialNo = i1;
+							minErrorTrialValue = trialErrors[i1];
+						}
+					}
+
+					Console.WriteLine($"chosen trial no is {minErrorTrialNo + 1}"); Debug.WriteLine($"chosen trial no is {minErrorTrialNo + 1}");
+
+					var internalRhsVector = CalculateInternalTrialRHS(increment, iteration, (minErrorTrialNo + 1) * trialSize);
+					double residualNormCurrent = UpdateResidualForcesAndNormForTrials(increment, internalRhsVector);
 					errorNorm = globalRhsNormInitial != 0 ? residualNormCurrent / globalRhsNormInitial : 0;
 
 					if (iteration == 0)
@@ -103,18 +96,17 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						IncrementalDisplacementsLog.StoreDisplacements(uPlusdu);
 					}
 
+					if (TotalDisplacementsPerIterationLog != null)
+					{
+						TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
+					}
+
 					if (errorNorm < residualTolerance)
 					{
-						if (analysisStatistics.ResidualNormRatioEstimation < errorNorm)
-						{
-							analysisStatistics.ResidualNormRatioEstimation = errorNorm;
-						}
-
 						if (IncrementalLog != null)
 						{
 							IncrementalLog.LogTotalDataForIncrement(increment, iteration, errorNorm, uPlusdu, internalRhsVector);
 						}
-
 						break;
 					}
 
@@ -124,36 +116,25 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						parentAnalyzer.BuildMatrices();
 					}
 				}
-
-				if (TotalDisplacementsPerIterationLog != null)
-				{
-					TotalDisplacementsPerIterationLog.StoreDisplacements(uPlusdu);
-				}
-
 				Debug.WriteLine("NR {0}, first error: {1}, exit error: {2}", iteration, firstError, errorNorm);
 				SaveMaterialStateAndUpdateSolution();
 			}
-
-			analysisStatistics.HasConverged = !notConverged;
 			DateTime end = DateTime.Now;
 			StoreLogResults(start, end);
 		}
 
 		public class Builder : NonLinearAnalyzerBuilderBase
 		{
-			private bool stopIfNotConverged = true;
-
-			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements, bool stopIfNotConverged = true)
+			public Builder(IAlgebraicModel algebraicModel, ISolver solver, INonLinearProvider provider, int numIncrements)
 				: base(algebraicModel, solver, provider, numIncrements)
 			{
 				MaxIterationsPerIncrement = 1000;
 				NumIterationsForMatrixRebuild = 1;
 				ResidualTolerance = 1E-3;
-				this.stopIfNotConverged = stopIfNotConverged;
 			}
 
-			public LoadControlAnalyzer Build() => new LoadControlAnalyzer(algebraicModel, solver, provider,
-				numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance, stopIfNotConverged);
+			public LoadControlAnalyzerWithTrialsForResidualEvaluation Build() => new LoadControlAnalyzerWithTrialsForResidualEvaluation(algebraicModel, solver, provider,
+				numIncrements, maxIterationsPerIncrement, numIterationsForMatrixRebuild, residualTolerance);
 		}
 	}
 }
