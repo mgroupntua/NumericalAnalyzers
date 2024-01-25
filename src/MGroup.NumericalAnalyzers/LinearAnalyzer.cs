@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+
 using DotNumerics.ODE.Radau5;
 
 using MGroup.LinearAlgebra.Iterative;
@@ -53,8 +54,8 @@ namespace MGroup.NumericalAnalyzers
 
 		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
-		public IterativeStatistics AnalysisStatistics => analysisStatistics; 
-		
+		public IterativeStatistics AnalysisStatistics => analysisStatistics;
+
 		public void Initialize(bool isFirstAnalysis)
 		{
 			//if (isFirstAnalysis)
@@ -67,7 +68,7 @@ namespace MGroup.NumericalAnalyzers
 		{
 			var start = DateTime.Now;
 			solver.Solve();
-			
+
 			analysisStatistics.HasConverged = true;
 			analysisStatistics.NumIterationsRequired = 1;
 			Responses = solver.LinearSystem.Solution.Copy();
@@ -81,7 +82,7 @@ namespace MGroup.NumericalAnalyzers
 			//TODO: equivalentNodalLoads will often be 0. Perhaps instead of AddToGlobalVector, we should have AxpyToGlobalVector
 			IGlobalVector equivalentNodalLoads = algebraicModel.CreateZeroVector();
 			algebraicModel.AddToGlobalVector(provider.EnumerateEquivalentNeumannBoundaryConditions, equivalentNodalLoads);
-			solver.LinearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads); 
+			solver.LinearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
 		}
 
 		private void InitializeLogs()
@@ -108,7 +109,6 @@ namespace MGroup.NumericalAnalyzers
 			}
 		}
 
-		public IterativeStatistics AnalysisStatistics => throw new NotImplementedException();
 
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{

@@ -75,7 +75,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private GenericAnalyzerState currentState;
 		private IList<IterativeStatistics> analysisStatistics;
 
-		private double[] systemKineticEnergies;
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
 		/// </summary>
@@ -160,6 +159,12 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 				currentState.StateVectors[FIRSTORDERSOLUTION].CheckForCompatibility = true;
 				currentState.StateVectors[SECONDORDERSOLUTION].CheckForCompatibility = true;
 			}
+		}
+
+		private void SetAnalysisPhase(TransientAnalysisPhase phase)
+		{
+			analysisPhase = phase;
+			provider.SetTransientAnalysisPhase(phase);
 		}
 
 		/// <summary>
@@ -264,50 +269,10 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 			start = DateTime.Now;
 			ChildAnalyzer.Initialize(false);
-			//var velocitiesDataToExport = ((GlobalAlgebraicModel<SymmetricCscMatrix>)algebraicModel).ExtractAllResults(currentState.StateVectors["First order derivative of solution"]).Data;
-			//var velocitiesVec = new double[velocitiesDataToExport.NumEntries];
-			//var inc = 0;
-			//foreach (var e in velocitiesDataToExport)
-			//{
-			//	velocitiesVec[inc] = e.val;
-			//	inc += 1;
-			//}
-			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(velocitiesVec, $@"C:\Users\Public\Documents\MSolve_output\VelocityVectorTimeStep{AnalysisState.newmarkIncrementNumber}.txt");
-			systemKineticEnergies[AnalysisState.newmarkIncrementNumber] = CalculateKineticEnergy(provider.GetMatrix(DifferentiationOrder.Second), currentState.StateVectors["First order derivative of solution"]);
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(systemKineticEnergies, $@"C:\Users\Public\Documents\MSolve_output\VelocityVectorTimeStep{AnalysisState.newmarkIncrementNumber}.txt");
 			ChildAnalyzer.Solve();
+			analysisStatistics[currentStep] = ChildAnalyzer.AnalysisStatistics;
 			end = DateTime.Now;
 			Debug.WriteLine("Newmark elapsed time: {0}", end - start);
-			double[] maxStrainsVec = new double[]
-			{
-				StrainLimitState.exMax,
-				StrainLimitState.eyMax,
-				StrainLimitState.ezMax,
-				StrainLimitState.gxyMax,
-				StrainLimitState.gxzMax,
-				StrainLimitState.gyzMax
-			};
-
-			double[] minStrainsVec = new double[]
-			{
-				StrainLimitState.exMin,
-				StrainLimitState.eyMin,
-				StrainLimitState.ezMin,
-				StrainLimitState.gxyMin,
-				StrainLimitState.gxzMin,
-				StrainLimitState.gyzMin
-			};
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(maxStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMaxComponents{AnalysisState.newmarkIncrementNumber}.txt");
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(minStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMinComponents{AnalysisState.newmarkIncrementNumber}.txt");
-		}
-
-		public static double CalculateKineticEnergy(IGlobalMatrix mass, IGlobalVector v)
-		{
-			IGlobalVector outVector = v.Copy();
-			outVector.Clear();
-			mass.MultiplyVector(v,outVector);
-			var ke = 0.50 * v.DotProduct(outVector);
-			return ke;
 		}
 
 		/// <summary>
@@ -315,50 +280,11 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// </summary>
 		public void Solve()
 		{
-			systemKineticEnergies = new double[Steps];
-			//AnalysisState.exportEqStrainFromIntegrPoints = new double[14080];
-			StrainLimitState.exMax = 0d;
-			StrainLimitState.eyMax = 0d;
-			StrainLimitState.ezMax = 0d;
-			StrainLimitState.gxyMax = 0d;
-			StrainLimitState.gxzMax = 0d;
-			StrainLimitState.gyzMax = 0d;
-			StrainLimitState.exMin = 0d;
-			StrainLimitState.eyMin = 0d;
-			StrainLimitState.ezMin = 0d;
-			StrainLimitState.gxyMin = 0d;
-			StrainLimitState.gxzMin = 0d;
-			StrainLimitState.gyzMin = 0d;
 			for (int i = 0; i < Steps; ++i)
 			{
-				AnalysisState.newmarkIncrementNumber = i;
-				AnalysisState.exportConsitutiveMatrix = false;
 				SolveCurrentTimestep();
 				AdvanceStep();
 			}
-
-			//double[] maxStrainsVec = new double[]
-			//{
-			//	StrainLimitState.exMax,
-			//	StrainLimitState.eyMax,
-			//	StrainLimitState.ezMax,
-			//	StrainLimitState.gxyMax,
-			//	StrainLimitState.gxzMax,
-			//	StrainLimitState.gyzMax
-			//};
-
-			//double[] minStrainsVec = new double[]
-			//{
-			//	StrainLimitState.exMin,
-			//	StrainLimitState.eyMin,
-			//	StrainLimitState.ezMin,
-			//	StrainLimitState.gxyMin,
-			//	StrainLimitState.gxzMin,
-			//	StrainLimitState.gyzMin
-			//};
-			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(maxStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMaxComponents.txt");
-			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(minStrainsVec, $@"C:\Users\Public\Documents\MSolve_output\StrainsMinComponents.txt");
-			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(systemKineticEnergies, $@"C:\Users\Public\Documents\MSolve_output\kineticEnergy.txt");
 		}
 
 		/// <summary>

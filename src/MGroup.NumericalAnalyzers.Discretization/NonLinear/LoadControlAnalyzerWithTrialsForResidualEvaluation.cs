@@ -11,7 +11,7 @@ using MGroup.LinearAlgebra;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
-	public class LoadControlAnalyzerWithTrialsForResidualEvaluation : NonLinearAnalyzerBase
+	public class LoadControlAnalyzerWithTrialsForResidualEvaluation : NonLinearAnalyzerWithTrialsBase
 	{
 		/// <summary>
 		/// This class solves the linearized geoemtrically nonlinear system of equations according to Newton-Raphson's load control incremental-iterative method.
@@ -42,7 +42,6 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			UpdateInternalVectors();
 			for (int increment = 0; increment < numIncrements; increment++)
 			{
-				AnalysisState.newmarkIncrementNumber = increment;
 				double errorNorm = 0;
 				ClearIncrementalSolutionVector();
 				UpdateRhs(increment);
@@ -51,7 +50,6 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 				int iteration = 0;
 				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
 				{
-					AnalysisState.loadControlIteration = iteration;
 					if (iteration == maxIterationsPerIncrement - 1)
 					{
 						return;
@@ -63,13 +61,13 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					}
 
 					solver.Solve();
-					StoreSystem();
+					StoreSystemSolutionState();
 					int nTrials = 4; int ratio = 4; double[] trialErrors = new double[nTrials]; double trialSize = (double)1 / ratio;
 					for (int i1 = 0; i1 < nTrials; i1++)
 					{
 						var trialInternalRhsVector = CalculateInternalTrialRHS(increment, iteration, (i1 + 1) * trialSize);
-						trialErrors[i1] = globalRhsNormInitial != 0 ? UpdateResidualForcesAndNorm(increment, trialInternalRhsVector) / globalRhsNormInitial : 0;
-						RestoreSystem();
+						trialErrors[i1] = globalRhsNormInitial != 0 ? UpdateResidualForcesAndNormForTrials(increment, trialInternalRhsVector) / globalRhsNormInitial : 0;
+						RestoreSystemSolutionState();
 					}
 					int minErrorTrialNo = 0;
 					double minErrorTrialValue = trialErrors[0];
@@ -85,7 +83,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					Console.WriteLine($"chosen trial no is {minErrorTrialNo + 1}"); Debug.WriteLine($"chosen trial no is {minErrorTrialNo + 1}");
 
 					var internalRhsVector = CalculateInternalTrialRHS(increment, iteration, (minErrorTrialNo + 1) * trialSize);
-					double residualNormCurrent = UpdateResidualForcesAndNorm(increment, internalRhsVector);
+					double residualNormCurrent = UpdateResidualForcesAndNormForTrials(increment, internalRhsVector);
 					errorNorm = globalRhsNormInitial != 0 ? residualNormCurrent / globalRhsNormInitial : 0;
 
 					if (iteration == 0)

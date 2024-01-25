@@ -148,8 +148,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 		}
 
-		public IList<IterativeStatistics> AnalysisStatistics => throw new NotImplementedException();
-
 		GenericAnalyzerState CreateState()
 		{
 			currentState = new GenericAnalyzerState(this,
@@ -255,7 +253,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			ChildAnalyzer.Solve();
 			analysisStatistics[currentStep] = ChildAnalyzer.AnalysisStatistics;
 			end = DateTime.Now;
-			Debug.WriteLine("BDF elapsed time: {0}", end-start);
+			Debug.WriteLine("BDF elapsed time: {0}", end - start);
 		}
 
 		/// <summary>
