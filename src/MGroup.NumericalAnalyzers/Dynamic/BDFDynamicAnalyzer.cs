@@ -9,6 +9,9 @@ using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.NumericalAnalyzers.Logging;
+using System.Linq;
+using MGroup.LinearAlgebra.Iterative;
+using System.Collections.Generic;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -47,6 +50,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		private DateTime start, end;
 		private int currentStep;
 		private GenericAnalyzerState currentState;
+		private IList<IterativeStatistics> analysisStatistics;
 
 		/// <summary>
 		/// Creates an instance that uses a specific problem type and an appropriate child analyzer for the construction of the system of equations arising from the actual physical problem
@@ -79,6 +83,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			{
 				throw new ArgumentException($"Wrong problem order. Must be zero or first order and it is {provider.ProblemOrder}");
 			}
+
+			this.analysisStatistics = Enumerable.Range(0, Steps).Select(x => new IterativeStatistics() { AlgorithmName = "BDF dynamic analyzer" }).ToArray();
 		}
 
 		public int BDFOrder { get; }
@@ -166,6 +172,9 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		IHaveState ICreateState.CreateState() => CreateState();
 		GenericAnalyzerState IAnalyzer.CreateState() => CreateState();
+
+		public IList<IterativeStatistics> AnalysisStatistics => analysisStatistics;
+
 		/// <summary>
 		/// Solves the linear system of equations of the current timestep
 		/// </summary>
@@ -242,6 +251,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			start = DateTime.Now;
 			ChildAnalyzer.Initialize(false);
 			ChildAnalyzer.Solve();
+			analysisStatistics[currentStep] = ChildAnalyzer.AnalysisStatistics;
 			end = DateTime.Now;
 			Debug.WriteLine("BDF elapsed time: {0}", end-start);
 		}

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using DotNumerics.ODE.Radau5;
+
+using MGroup.LinearAlgebra.Iterative;
 using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
@@ -21,7 +23,10 @@ namespace MGroup.NumericalAnalyzers
 		private readonly IAlgebraicModel algebraicModel;
 		private readonly IAnalyzerProvider provider;
 		private readonly ISolver solver;
-
+		private IterativeStatistics analysisStatistics = new IterativeStatistics()
+		{
+			AlgorithmName = "Linear analyzer",
+		};
 
 		/// <summary>
 		/// This class defines the linear anaylzer.
@@ -48,6 +53,8 @@ namespace MGroup.NumericalAnalyzers
 
 		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
+		public IterativeStatistics AnalysisStatistics => analysisStatistics; 
+		
 		public void Initialize(bool isFirstAnalysis)
 		{
 			//if (isFirstAnalysis)
@@ -60,8 +67,12 @@ namespace MGroup.NumericalAnalyzers
 		{
 			var start = DateTime.Now;
 			solver.Solve();
+			
+			analysisStatistics.HasConverged = true;
+			analysisStatistics.NumIterationsRequired = 1;
 			Responses = solver.LinearSystem.Solution.Copy();
 			var end = DateTime.Now;
+
 			StoreLogResults(start, end);
 		}
 
