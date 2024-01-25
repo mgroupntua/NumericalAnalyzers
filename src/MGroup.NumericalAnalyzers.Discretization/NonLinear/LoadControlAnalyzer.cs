@@ -56,7 +56,6 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 
 				double firstError = 0;
 				int iteration = 0;
-				AnalysisState.newmarkIncrementNumber = increment;
 				for (iteration = 0; iteration < maxIterationsPerIncrement; iteration++)
 				{
 					analysisStatistics.NumIterationsRequired++;
