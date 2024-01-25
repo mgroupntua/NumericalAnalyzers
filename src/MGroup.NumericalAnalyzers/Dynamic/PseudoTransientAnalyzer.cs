@@ -90,8 +90,6 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 		}
 
-		public IList<IterativeStatistics> AnalysisStatistics => analysisStatistics;
-
 		/// <summary>
 		/// Makes the proper solver-specific initializations before the solution of the linear system of equations. This method MUST be called before the actual solution of the aforementioned system
 		/// </summary>

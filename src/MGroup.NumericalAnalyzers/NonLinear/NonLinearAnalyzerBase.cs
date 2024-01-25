@@ -32,6 +32,12 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected IGlobalVector u;
 		protected IGlobalVector du;
 		protected IGlobalVector uPlusdu;
+		// added for trial solutions for calculation of du with minimum residual
+		protected IGlobalVector copiedRHS;
+		protected IGlobalVector uCopy;
+		protected IGlobalVector duCopy;
+		protected IGlobalVector uPlusduCopy;
+		//added for trial solutions for calculation of du with minimum residual
 		protected double globalRhsNormInitial;
 		protected INonLinearParentAnalyzer parentAnalyzer = null;
 		private GenericAnalyzerState currentState;
@@ -92,6 +98,8 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
 			}
 		}
+
+		public IterativeStatistics AnalysisStatistics => throw new NotImplementedException();
 
 		//public IGlobalVector CurrentAnalysisLinearSystemRhs => throw new NotImplementedException();
 
@@ -239,6 +247,20 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			ParentAnalyzer.CreateState();
 			provider.UpdateState(ParentAnalyzer.CurrentState);
 			u.AddIntoThis(du);
+			//
+			//var dataToExport = ((GlobalAlgebraicModel<SkylineMatrix>)algebraicModel).ExtractAllResults(u).Data;
+			var dataToExport = ((GlobalAlgebraicModel<SymmetricCscMatrix>)algebraicModel).ExtractAllResults(u).Data;
+			//var dataToExport = ((GlobalAlgebraicModel<Matrix>)algebraicModel).ExtractAllResults(u).Data;
+			var solutionToExport = new double[dataToExport.NumEntries];
+			var arrayIndex = 0;
+			foreach (var e in dataToExport)
+			{
+				solutionToExport[arrayIndex] = e.val;
+				arrayIndex += 1;
+			}
+			(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(solutionToExport, $@"C:\Users\Public\Documents\MSolve_output\globalSolutionTimeStep{AnalysisState.newmarkIncrementNumber}.txt");
+			//(new MGroup.LinearAlgebra.Output.Array1DWriter()).WriteToFile(solutionToExport, $@"C:\Users\Public\Documents\MSolve_output\globalSolutionTimeStep{AnalysisState.newmarkIncrementNumber}_Iteration_{AnalysisState.loadControlIteration}.txt");
+			//
 		}
 
 		protected void StoreLogResults(DateTime start, DateTime end)
@@ -261,6 +283,55 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			solver.LinearSystem.RhsVector.CopyFrom(rhsIncrement);
 		}
 
+		public void StoreSystem()
+		{
+			duCopy.Clear();
+			uPlusduCopy.Clear();
+			uCopy.Clear();
+			duCopy.AddIntoThis(du);
+			uPlusduCopy.AddIntoThis(uPlusdu);
+			uCopy.AddIntoThis(u);
+		}
+
+		public void RestoreSystem()
+		{
+			du.Clear();
+			uPlusdu.Clear();
+			u.Clear();
+			du.AddIntoThis(duCopy);
+			uPlusdu.AddIntoThis(uPlusduCopy);
+			u.AddIntoThis(uCopy);
+		}
+
+		protected IGlobalVector CalculateInternalTrialRHS(int currentIncrement, int iteration, double trialSize)
+		{
+			if (currentIncrement == 0 && iteration == 0)
+			{
+				du.Clear();
+				uPlusdu.Clear();
+				du.AddIntoThis(solver.LinearSystem.Solution.Scale(trialSize));
+				uPlusdu.AddIntoThis(solver.LinearSystem.Solution.Scale(trialSize));
+				du.SubtractIntoThis(u);
+			}
+			else
+			{
+				du.AddIntoThis(solver.LinearSystem.Solution.Scale(trialSize));
+				uPlusdu.Clear();
+				uPlusdu.AddIntoThis(u);
+				uPlusdu.AddIntoThis(du);
+			}
+
+			IGlobalVector internalTrialRhs = provider.CalculateResponseIntegralVector(uPlusdu);
+			provider.ProcessInternalRhs(uPlusdu, internalTrialRhs);
+
+			if (parentAnalyzer != null)
+			{
+				IGlobalVector otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
+				internalTrialRhs.AddIntoThis(otherRhsComponents);
+			}
+
+			return internalTrialRhs;
+		}
 		/// <summary>
 		/// This class solves system and calculates the displacements vector.
 		/// </summary>

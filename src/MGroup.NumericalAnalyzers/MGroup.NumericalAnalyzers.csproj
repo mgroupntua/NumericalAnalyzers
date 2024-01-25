@@ -26,4 +26,7 @@
   <ItemGroup>
     <Folder Include="Staggered\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\LinearAlgebra\src\MGroup.LinearAlgebra\MGroup.LinearAlgebra.csproj" />
+  </ItemGroup>
 </Project>

@@ -148,6 +148,8 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 			}
 		}
 
+		public IList<IterativeStatistics> AnalysisStatistics => throw new NotImplementedException();
+
 		GenericAnalyzerState CreateState()
 		{
 			currentState = new GenericAnalyzerState(this,
