@@ -7,12 +7,11 @@ using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Constitutive;
 using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.NumericalAnalyzers.Logging;
-using System.Collections;
 using MGroup.LinearAlgebra.Iterative;
 using System.Collections.Generic;
 using System.Linq;
+using MGroup.LinearAlgebra.Vectors;
 
 namespace MGroup.NumericalAnalyzers.Dynamic
 {
@@ -37,7 +36,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		//private readonly IModel model;
 		private readonly IAlgebraicModel algebraicModel;
 		private readonly ITransientAnalysisProvider provider;
-		private IGlobalVector rhs;
+		private IVector rhs;
 		private int currentStep;
 		private DateTime start, end;
 		private GenericAnalyzerState currentState;
@@ -66,7 +65,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 
 		public IAnalysisWorkflowLog[] Logs => null;
 
-		public IGlobalVector CurrentAnalysisResult { get => ChildAnalyzer.CurrentAnalysisResult.Copy(); }
+		public IVector CurrentAnalysisResult { get => ChildAnalyzer.CurrentAnalysisResult.Copy(); }
 
 		public ImplicitIntegrationAnalyzerLog ResultStorage { get; set; }
 
@@ -103,7 +102,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		/// <summary>
 		/// Calculates inertia forces and damping forces.
 		/// </summary>
-		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution) => algebraicModel.CreateZeroVector();
+		public IVector GetOtherRhsComponents(IVector currentSolution) => algebraicModel.CreateZeroVector();
 
 		/// <summary>
 		/// Initializes the models, the solvers, child analyzers, builds the matrices, assigns loads and initializes right-hand-side vectors.
@@ -132,7 +131,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			Debug.WriteLine("Pseudo-Transient Analyzer step: {0}", currentStep);
 
-			IGlobalVector rhsVector = provider.GetRhs(currentStep * timeStep);
+			IVector rhsVector = provider.GetRhs(currentStep * timeStep);
 			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.CopyFrom(rhsVector);
 
 			InitializeRhs();
@@ -191,7 +190,7 @@ namespace MGroup.NumericalAnalyzers.Dynamic
 		{
 			currentState = new GenericAnalyzerState(this, new[]
 				{
-					(String.Empty, (IGlobalVector)null)
+					(String.Empty, (IVector)null)
 				},
 				new[]
 				{

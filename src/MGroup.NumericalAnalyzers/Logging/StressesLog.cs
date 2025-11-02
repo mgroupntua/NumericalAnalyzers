@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
+using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {
@@ -45,7 +45,7 @@ namespace MGroup.NumericalAnalyzers.Logging
 
         #region IResultStorage Members
 
-        public void StoreResults(DateTime startTime, DateTime endTime, IGlobalVector solutionVector)
+        public void StoreResults(DateTime startTime, DateTime endTime, IVector solutionVector)
         {
 			StartTime = startTime;
 			EndTime = endTime;

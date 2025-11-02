@@ -2,12 +2,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Discretization.Dofs;
 using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Discretization.BoundaryConditions;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.LinearAlgebra.Vectors;
 
 //TODO: This class should only extract data. How to output them (print in .txt, .xlsx, etc) should be done by different or
 //      child classes
@@ -91,7 +90,7 @@ namespace MGroup.NumericalAnalyzers.Logging
         /// The total internal right hand side forces (start till current iteration of current increment) of the subdomain.
         /// </param>
         public void LogTotalDataForIncrement(int incrementNumber, int currentIterationNumber, double errorNorm,
-            IGlobalVector totalDisplacements, IGlobalVector totalInternalForces)
+            IVector totalDisplacements, IVector totalInternalForces)
         {
 			double displacement, force;
 			try

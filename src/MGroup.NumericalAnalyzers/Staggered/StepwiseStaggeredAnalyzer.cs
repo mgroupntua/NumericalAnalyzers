@@ -1,10 +1,9 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 
+using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Staggered
 {
@@ -31,7 +30,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 				throw new ArgumentException($"Solvers and analyzer length mismatch (analyzers: {analyzers.Length}, solvers: {solvers.Length})");
 			}
 
-			this.currentSolutions = new IGlobalVector[analyzers.Length];
+			this.currentSolutions = new IVector[analyzers.Length];
 			this.CreateNewModel = createNewModel;
 		}
 

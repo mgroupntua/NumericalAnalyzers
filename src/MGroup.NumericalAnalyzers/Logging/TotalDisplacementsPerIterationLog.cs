@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 
+using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Discretization.Dofs;
 using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {
@@ -33,7 +33,7 @@ namespace MGroup.NumericalAnalyzers.Logging
 		/// Stores the total displacements = u_converged + du, for a new iteration.
 		/// </summary>
 		/// <param name="totalDisplacements">The total displacements for each subdomain.</param>
-		public void StoreDisplacements(IGlobalVector totalDisplacements)
+		public void StoreDisplacements(IVector totalDisplacements)
         {
             var currentIterDisplacements = new Table<INode, IDofType, double>();
 			foreach ((INode node, IDofType dof) in WatchDofs)
@@ -46,7 +46,7 @@ namespace MGroup.NumericalAnalyzers.Logging
         public double GetTotalDisplacement(int iteration, INode node, IDofType dof) 
             => dofDisplacementsPerIter[iteration][node, dof];
 
-        public void StoreResults(DateTime startTime, DateTime endTime, IGlobalVector solution)
+        public void StoreResults(DateTime startTime, DateTime endTime, IVector solution)
         {
             throw new NotImplementedException();
         }

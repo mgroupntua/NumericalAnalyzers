@@ -1,12 +1,11 @@
 using System;
 using System.Diagnostics;
-using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.NumericalAnalyzers.NonLinear;
 using MGroup.NumericalAnalyzers.Logging;
+using MGroup.LinearAlgebra.Vectors;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
@@ -17,13 +16,13 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 	{
 		private int sign;
 		private int previousIterations;
-		private IGlobalVector incrSolution;
-		private IGlobalVector resSolution;
-		private IGlobalVector curSolution;
-		private IGlobalVector prevIncrSolution;
-		private IGlobalVector polynomialSolution;
-		private IGlobalVector rhsResidual;
-		private IGlobalVector globalRhs;
+		private IVector incrSolution;
+		private IVector resSolution;
+		private IVector curSolution;
+		private IVector prevIncrSolution;
+		private IVector polynomialSolution;
+		private IVector rhsResidual;
+		private IVector globalRhs;
 		private double incrementalRhsNormInitial;
 		private double lambda;
 		private double dlambda;
@@ -195,7 +194,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 						UpdateSolution(increment, iteration, curSolution);
 					}
 
-					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
+					IVector internalRhsVector = CalculateInternalRhs(increment, iteration);
 					double residualNormCurrent = UpdateResidualForcesAndNorm(internalRhsVector);
 					errorNorm = incrementalRhsNormInitial != 0 ? residualNormCurrent / incrementalRhsNormInitial : 0;// (rhsNorm*increment/increments) : 0;//TODOMaria this calculates the internal force vector and subtracts it from the external one (calculates the residual)
 
@@ -253,21 +252,21 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			solver.LinearSystem.RhsVector.CopyFrom(rhsResidual);
 		}
 
-		new private IGlobalVector CalculateInternalRhs(int increment, int iteration)
+		new private IVector CalculateInternalRhs(int increment, int iteration)
 		{
-			IGlobalVector internalRhs = provider.CalculateResponseIntegralVector(uPlusdu);
+			IVector internalRhs = provider.CalculateResponseIntegralVector(uPlusdu);
 			provider.ProcessInternalRhs(uPlusdu, internalRhs);
 
 			if (parentAnalyzer != null)
 			{
-				IGlobalVector otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
+				IVector otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
 				internalRhs.AddIntoThis(otherRhsComponents);
 			}
 
 			return internalRhs;
 		}
 
-		private void UpdateSolution(int currentIncrement, int iteration, IGlobalVector solution)
+		private void UpdateSolution(int currentIncrement, int iteration, IVector solution)
 		{
 			if (currentIncrement == 0 && iteration == 0)
 			{
@@ -286,7 +285,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			}
 		}
 
-		private double UpdateResidualForcesAndNorm(IGlobalVector internalRhsVector)
+		private double UpdateResidualForcesAndNorm(IVector internalRhsVector)
 		{
 			globalRhs.Clear();
 			solver.LinearSystem.RhsVector.Clear();
@@ -297,7 +296,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			return provider.CalculateRhsNorm(solver.LinearSystem.RhsVector);
 		}
 
-		private void UpdateSolution(IGlobalVector solution)
+		private void UpdateSolution(IVector solution)
 		{
 			solution.Clear();
 			solution.CopyFrom(solver.LinearSystem.Solution);

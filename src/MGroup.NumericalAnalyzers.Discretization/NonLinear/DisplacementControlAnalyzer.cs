@@ -1,12 +1,12 @@
 using System;
 using System.Diagnostics;
-using MGroup.MSolve.AnalysisWorkflow;
+
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.NumericalAnalyzers.NonLinear;
 using MGroup.NumericalAnalyzers.Logging;
+using MGroup.LinearAlgebra.Vectors;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
@@ -93,7 +93,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					AddEquivalentNodalLoadsToRHS(increment, iteration);
 					solver.Solve();
 
-					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
+					IVector internalRhsVector = CalculateInternalRhs(increment, iteration);
 					errorNorm = UpdateResidualForcesAndNorm(increment, iteration, internalRhsVector);
 
 					if (iteration == 0)
@@ -149,7 +149,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 			}
 
 			//double scalingFactor = 1;
-			IGlobalVector equivalentNodalLoads = algebraicModel.CreateZeroVector();
+			IVector equivalentNodalLoads = algebraicModel.CreateZeroVector();
 			algebraicModel.AddToGlobalVector(provider.EnumerateEquivalentNeumannBoundaryConditions, equivalentNodalLoads);
 			solver.LinearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads);
 		}
