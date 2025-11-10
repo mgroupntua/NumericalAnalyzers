@@ -5,11 +5,11 @@ using System.Diagnostics;
 using System.Linq;
 
 using MGroup.LinearAlgebra.Iterative;
+using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Staggered
 {
@@ -24,7 +24,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 		protected IParentAnalyzer[] analyzers;
 		protected ISolver[] solvers;
 		protected CreateNewModelDelegate CreateNewModel;
-		protected IGlobalVector[] currentSolutions;
+		protected IVector[] currentSolutions;
 		protected GenericAnalyzerState[] analyzerStates;
 
 		public IAnalysisWorkflowLog[] Logs { get; set; }
@@ -33,7 +33,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 
 		public IList<IList<IList<IterativeStatistics>>> NestedAnalysisStatistics => nestedAnalysisStatistics;
 
-		public IGlobalVector CurrentAnalysisResult { get => throw new NotSupportedException("Staggered analyzer has more than one nested analyzers. Use CurrentAnalysisResult of each individual nested analyzer"); }
+		public IVector CurrentAnalysisResult { get => throw new NotSupportedException("Staggered analyzer has more than one nested analyzers. Use CurrentAnalysisResult of each individual nested analyzer"); }
 
 		GenericAnalyzerState IAnalyzer.CurrentState
 		{
@@ -45,7 +45,7 @@ namespace MGroup.NumericalAnalyzers.Staggered
 
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{
-			(String.Empty, (IGlobalVector)null)
+			(String.Empty, (IVector)null)
 		});
 
 		IHaveState ICreateState.CreateState() => CreateState();

@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 
 using MGroup.LinearAlgebra.Iterative;
+using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
-using MGroup.MSolve.AnalysisWorkflow.Transient;
 using MGroup.MSolve.DataStructures;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers
 {
@@ -43,7 +42,7 @@ namespace MGroup.NumericalAnalyzers
 
 		public IAnalysisWorkflowLog[] Logs { get; set; }
 
-		public IGlobalVector CurrentAnalysisResult { get => ChildAnalyzer?.CurrentAnalysisResult; }
+		public IVector CurrentAnalysisResult { get => ChildAnalyzer?.CurrentAnalysisResult; }
 
 		public IChildAnalyzer ChildAnalyzer { get; }
 
@@ -59,7 +58,7 @@ namespace MGroup.NumericalAnalyzers
 
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{
-			(String.Empty, (IGlobalVector)null)
+			(String.Empty, (IVector)null)
 		});
 
 		IHaveState ICreateState.CreateState() => CreateState();
@@ -75,7 +74,7 @@ namespace MGroup.NumericalAnalyzers
 			algebraicModel.LinearSystem.Matrix = matrix;
 		}
 
-		public IGlobalVector GetOtherRhsComponents(IGlobalVector currentSolution)
+		public IVector GetOtherRhsComponents(IVector currentSolution)
 		{
 			return algebraicModel.CreateZeroVector();
 		}
@@ -110,7 +109,7 @@ namespace MGroup.NumericalAnalyzers
 				throw new InvalidOperationException("Static analyzer must contain an embedded analyzer.");
 			}
 
-			IGlobalVector rhsVector = provider.GetRhs();
+			IVector rhsVector = provider.GetRhs();
 			ChildAnalyzer.CurrentAnalysisLinearSystemRhs.AddIntoThis(rhsVector);
 			ChildAnalyzer.Solve();
 			AnalysisStatistics[0] = ChildAnalyzer.AnalysisStatistics;

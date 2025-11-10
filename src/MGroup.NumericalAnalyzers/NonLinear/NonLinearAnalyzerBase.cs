@@ -3,11 +3,11 @@ using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.NumericalAnalyzers.Logging;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.MSolve.DataStructures;
 using MGroup.LinearAlgebra.Iterative;
+using MGroup.LinearAlgebra.Vectors;
 
 namespace MGroup.NumericalAnalyzers.NonLinear
 {
@@ -27,11 +27,11 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 		protected readonly INonLinearProvider provider;
 		protected readonly double residualTolerance;
 		protected readonly ISolver solver;
-		protected IGlobalVector rhsIncrement;
-		protected IGlobalVector lastRhs;
-		protected IGlobalVector u;
-		protected IGlobalVector du;
-		protected IGlobalVector uPlusdu;
+		protected IVector rhsIncrement;
+		protected IVector lastRhs;
+		protected IVector u;
+		protected IVector du;
+		protected IVector uPlusdu;
 		protected double globalRhsNormInitial;
 		protected INonLinearParentAnalyzer parentAnalyzer = null;
 		private GenericAnalyzerState currentState;
@@ -54,7 +54,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 
 		public LinearAnalyzerLogFactory LogFactory { get; set; }
 
-		public IGlobalVector CurrentAnalysisResult { get => u; }
+		public IVector CurrentAnalysisResult { get => u; }
 
 		public IAnalysisWorkflowLog[] Logs { get; set; } = new IAnalysisWorkflowLog[0];
 
@@ -70,9 +70,9 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			set => parentAnalyzer = (INonLinearParentAnalyzer)value;
 		}
 
-		public IGlobalVector Responses { get; set; }
+		public IVector Responses { get; set; }
 
-		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
+		public IVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
 		public IterativeStatistics AnalysisStatistics => analysisStatistics;
 		
@@ -82,14 +82,14 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			set
 			{
 				currentState = value;
-				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
-				currentState.StateVectors[LASTRHS].CheckForCompatibility = false;
+				//currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = false;
+				//currentState.StateVectors[LASTRHS].CheckForCompatibility = false;
 
 				u.CopyFrom(currentState.StateVectors[CURRENTSOLUTION]);
 				lastRhs.CopyFrom(currentState.StateVectors[LASTRHS]);
 
-				currentState.StateVectors[LASTRHS].CheckForCompatibility = true;
-				currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
+				//currentState.StateVectors[LASTRHS].CheckForCompatibility = true;
+				//currentState.StateVectors[CURRENTSOLUTION].CheckForCompatibility = true;
 			}
 		}
 
@@ -115,7 +115,7 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 			InitializeInternalVectors(isFirstAnalysis);
 		}
 
-		protected IGlobalVector CalculateInternalRhs(int currentIncrement, int iteration)
+		protected IVector CalculateInternalRhs(int currentIncrement, int iteration)
 		{
 			if (currentIncrement == 0 && iteration == 0)
 			{
@@ -133,19 +133,19 @@ namespace MGroup.NumericalAnalyzers.NonLinear
 				uPlusdu.AddIntoThis(du);
 			}
 
-			IGlobalVector internalRhs = provider.CalculateResponseIntegralVector(uPlusdu);
+			IVector internalRhs = provider.CalculateResponseIntegralVector(uPlusdu);
 			provider.ProcessInternalRhs(uPlusdu, internalRhs);
 
 			if (parentAnalyzer != null)
 			{
-				IGlobalVector otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
+				IVector otherRhsComponents = parentAnalyzer.GetOtherRhsComponents(uPlusdu);
 				internalRhs.AddIntoThis(otherRhsComponents);
 			}
 
 			return internalRhs;
 		}
 
-		protected double UpdateResidualForcesAndNorm(int currentIncrement, int iteration, IGlobalVector internalRhs)
+		protected double UpdateResidualForcesAndNorm(int currentIncrement, int iteration, IVector internalRhs)
 		{
 			if (iteration == 0)
 			{

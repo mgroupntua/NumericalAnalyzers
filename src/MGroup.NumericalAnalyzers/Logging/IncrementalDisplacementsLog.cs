@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 
+using MGroup.LinearAlgebra.Vectors;
 using MGroup.MSolve.DataStructures;
-using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Discretization.Dofs;
 using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers.Logging
 {
@@ -27,7 +26,7 @@ namespace MGroup.NumericalAnalyzers.Logging
 
 		public IList<(INode, IDofType)> WatchDofs { get; }
 
-		public void StoreDisplacements(IGlobalVector totalDisplacements)
+		public void StoreDisplacements(IVector totalDisplacements)
         {
 			var currentIterDisplacements = new Table<INode, IDofType, double>();
 			foreach ((INode node, IDofType dof) in WatchDofs)

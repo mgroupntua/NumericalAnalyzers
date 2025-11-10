@@ -8,10 +8,8 @@ using MGroup.MSolve.AnalysisWorkflow;
 using MGroup.MSolve.AnalysisWorkflow.Logging;
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.MSolve.DataStructures;
-using MGroup.MSolve.Discretization;
 using MGroup.MSolve.Solution;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
 
 namespace MGroup.NumericalAnalyzers
 {
@@ -43,15 +41,15 @@ namespace MGroup.NumericalAnalyzers
 
 		public ILogFactory LogFactory { get; set; }
 
-		public IGlobalVector CurrentAnalysisResult { get => solver?.LinearSystem?.Solution; }
+		public IVector CurrentAnalysisResult { get => solver?.LinearSystem?.Solution; }
 
 		public IAnalysisWorkflowLog[] Logs { get; set; } = new IAnalysisWorkflowLog[0];
 
 		public IParentAnalyzer ParentAnalyzer { get; set; }
 
-		public IGlobalVector Responses { get; set; }
+		public IVector Responses { get; set; }
 
-		public IGlobalVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
+		public IVector CurrentAnalysisLinearSystemRhs { get => solver.LinearSystem.RhsVector; }
 
 		public IterativeStatistics AnalysisStatistics => analysisStatistics; 
 		
@@ -79,7 +77,7 @@ namespace MGroup.NumericalAnalyzers
 		private void AddEquivalentNodalLoadsToRHS()
 		{
 			//TODO: equivalentNodalLoads will often be 0. Perhaps instead of AddToGlobalVector, we should have AxpyToGlobalVector
-			IGlobalVector equivalentNodalLoads = algebraicModel.CreateZeroVector();
+			IVector equivalentNodalLoads = algebraicModel.CreateZeroVector();
 			algebraicModel.AddToGlobalVector(provider.EnumerateEquivalentNeumannBoundaryConditions, equivalentNodalLoads);
 			solver.LinearSystem.RhsVector.SubtractIntoThis(equivalentNodalLoads); 
 		}
@@ -111,7 +109,7 @@ namespace MGroup.NumericalAnalyzers
 
 		GenericAnalyzerState CreateState() => new GenericAnalyzerState(this, new[]
 		{
-			(String.Empty, (IGlobalVector)null)
+			(String.Empty, (IVector)null)
 		});
 
 		IHaveState ICreateState.CreateState() => CreateState();

@@ -8,7 +8,7 @@ using MGroup.MSolve.Discretization.Dofs;
 using MGroup.MSolve.Discretization.Entities;
 using MGroup.MSolve.Discretization.BoundaryConditions;
 using MGroup.MSolve.Solution.AlgebraicModel;
-using MGroup.MSolve.Solution.LinearSystem;
+using MGroup.LinearAlgebra.Vectors;
 
 //TODO: finding the contributing elements and the corresponding local dof indices can be done only once in the constructor.
 namespace MGroup.NumericalAnalyzers.Logging
@@ -27,7 +27,7 @@ namespace MGroup.NumericalAnalyzers.Logging
 			this.resultsExtractor = resultsExtractor;
 		}
 
-        internal double CalculateForceAt(INode node, IDofType dofType, IGlobalVector totalDisplacements)
+        internal double CalculateForceAt(INode node, IDofType dofType, IVector totalDisplacements)
         {
             double totalForce = 0.0;
 
@@ -48,7 +48,7 @@ namespace MGroup.NumericalAnalyzers.Logging
             return totalForce;
         }
 
-		private double[] CalculateElementDisplacements(IElementType element, IEnumerable<INodalBoundaryCondition> boundaryConditions, IGlobalVector displacements)
+		private double[] CalculateElementDisplacements(IElementType element, IEnumerable<INodalBoundaryCondition> boundaryConditions, IVector displacements)
 		{
 			double[] elementNodalDisplacements = resultsExtractor.ExtractElementVector(displacements, element);
 			//DirichletElementLoad.ApplyBoundaryConditions(element, elementNodalDisplacements);

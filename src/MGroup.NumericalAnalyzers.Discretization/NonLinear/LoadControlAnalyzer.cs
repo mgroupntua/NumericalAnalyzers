@@ -1,13 +1,12 @@
 using System;
 using System.Diagnostics;
-using MGroup.MSolve.AnalysisWorkflow;
+
 using MGroup.MSolve.AnalysisWorkflow.Providers;
 using MGroup.MSolve.Solution;
-using MGroup.MSolve.Solution.LinearSystem;
 using MGroup.MSolve.Solution.AlgebraicModel;
 using MGroup.NumericalAnalyzers.Logging;
 using MGroup.NumericalAnalyzers.NonLinear;
-
+using MGroup.LinearAlgebra.Vectors;
 
 namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 {
@@ -89,7 +88,7 @@ namespace MGroup.NumericalAnalyzers.Discretization.NonLinear
 					}
 
 					solver.Solve();
-					IGlobalVector internalRhsVector = CalculateInternalRhs(increment, iteration);
+					IVector internalRhsVector = CalculateInternalRhs(increment, iteration);
 					double residualNormCurrent = UpdateResidualForcesAndNorm(increment, iteration, internalRhsVector);
 					errorNorm = globalRhsNormInitial != 0 ? residualNormCurrent / globalRhsNormInitial : 0;
 
