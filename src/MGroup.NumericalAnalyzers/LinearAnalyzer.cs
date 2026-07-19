@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using DotNumerics.ODE.Radau5;
 
 using MGroup.LinearAlgebra.Iterative;
 using MGroup.LinearAlgebra.Vectors;
